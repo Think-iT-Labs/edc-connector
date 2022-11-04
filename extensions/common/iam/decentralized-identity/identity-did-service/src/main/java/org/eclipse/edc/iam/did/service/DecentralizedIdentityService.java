@@ -16,14 +16,18 @@
 
 package org.eclipse.edc.iam.did.service;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.eclipse.edc.iam.did.crypto.JwtUtils;
+import com.nimbusds.jwt.proc.BadJWTException;
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import org.eclipse.edc.iam.did.crypto.key.KeyConverter;
 import org.eclipse.edc.iam.did.spi.credentials.CredentialsVerifier;
 import org.eclipse.edc.iam.did.spi.document.DidConstants;
 import org.eclipse.edc.iam.did.spi.document.DidDocument;
 import org.eclipse.edc.iam.did.spi.document.VerificationMethod;
 import org.eclipse.edc.iam.did.spi.key.PrivateKeyWrapper;
+import org.eclipse.edc.iam.did.spi.key.PublicKeyWrapper;
 import org.eclipse.edc.iam.did.spi.resolution.DidResolverRegistry;
 import org.eclipse.edc.jwt.TokenGenerationServiceImpl;
 import org.eclipse.edc.jwt.spi.JwtDecorator;
@@ -43,6 +47,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.eclipse.edc.jwt.spi.JwtRegisteredClaimNames.AUDIENCE;
@@ -126,7 +131,7 @@ public class DecentralizedIdentityService implements IdentityService {
             var publicKeyWrapper = KeyConverter.toPublicKeyWrapper(publicKeyJwk, publicKey.get().getId());
 
             monitor.debug("Verifying JWT with public key...");
-            var verified = JwtUtils.verify(jwt, publicKeyWrapper, audience);
+            var verified = verify(jwt, publicKeyWrapper, audience);
             if (verified.failed()) {
                 monitor.debug(() -> "Failure in token verification: " + verified.getFailureDetail());
                 return Result.failure("Token could not be verified!");
@@ -153,5 +158,47 @@ public class DecentralizedIdentityService implements IdentityService {
     @NotNull
     private Optional<VerificationMethod> getPublicKey(DidDocument did) {
         return did.getVerificationMethod().stream().filter(vm -> DidConstants.ALLOWED_VERIFICATION_TYPES.contains(vm.getType())).findFirst();
+    }
+
+    /**
+     * Verifies a VerifiableCredential using the issuer's public key
+     *
+     * @param jwt       a {@link SignedJWT} that was sent by the claiming party.
+     * @param publicKey The claiming party's public key, passed as a {@link PublicKeyWrapper}
+     * @param audience  The intended audience
+     * @return true if verified, false otherwise
+     */
+    private Result<Void> verify(SignedJWT jwt, PublicKeyWrapper publicKey, String audience) {
+        // verify JWT signature
+        try {
+            var verified = jwt.verify(publicKey.verifier());
+            if (!verified) {
+                return Result.failure("Invalid signature");
+            }
+        } catch (JOSEException e) {
+            return Result.failure("Unable to verify JWT token. " + e.getMessage()); // e.g. the JWS algorithm is not supported
+        }
+
+        JWTClaimsSet jwtClaimsSet;
+        try {
+            jwtClaimsSet = jwt.getJWTClaimsSet();
+        } catch (ParseException e) {
+            return Result.failure("Error verifying JWT token. The payload must represent a valid JSON object and a JWT claims set. " + e.getMessage());
+        }
+
+        // verify claims
+        var exactMatchClaims = new JWTClaimsSet.Builder()
+                .audience(audience)
+                .build();
+        var requiredClaims = Set.of(ISSUER, SUBJECT, EXPIRATION_TIME);
+
+        var claimsVerifier = new DefaultJWTClaimsVerifier<>(exactMatchClaims, requiredClaims);
+        try {
+            claimsVerifier.verify(jwtClaimsSet);
+        } catch (BadJWTException e) {
+            return Result.failure("Claim verification failed. " + e.getMessage());
+        }
+
+        return Result.success();
     }
 }

@@ -84,6 +84,7 @@ class DecentralizedIdentityServiceTest {
         when(didResolverRegistryMock.resolve(anyString())).thenReturn(Result.success(createDidDocument((ECKey) otherKeyPair.toPublicJWK())));
 
         var result = identityService.obtainClientCredentials(defaultTokenParameters());
+
         assertTrue(result.succeeded());
 
         var verificationResult = identityService.verifyJwtToken(result.getContent(), "Bar");
