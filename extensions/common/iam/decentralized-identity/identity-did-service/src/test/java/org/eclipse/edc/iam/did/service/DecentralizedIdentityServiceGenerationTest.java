@@ -12,7 +12,7 @@
  *
  */
 
-package org.eclipse.edc.iam.did.crypto;
+package org.eclipse.edc.iam.did.service;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.ECKey;
@@ -21,6 +21,13 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.eclipse.edc.iam.did.crypto.key.EcPrivateKeyWrapper;
 import org.eclipse.edc.iam.did.crypto.key.EcPublicKeyWrapper;
+import org.eclipse.edc.iam.did.spi.credentials.CredentialsVerifier;
+import org.eclipse.edc.iam.did.spi.resolution.DidResolverRegistry;
+import org.eclipse.edc.spi.iam.IdentityService;
+import org.eclipse.edc.spi.iam.TokenParameters;
+import org.eclipse.edc.spi.iam.TokenRepresentation;
+import org.eclipse.edc.spi.monitor.ConsoleMonitor;
+import org.eclipse.edc.spi.result.AbstractResult;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +50,6 @@ import static java.time.ZoneOffset.UTC;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.edc.iam.did.crypto.JwtUtils.create;
 import static org.eclipse.edc.iam.did.crypto.JwtUtils.verify;
 import static org.eclipse.edc.iam.did.crypto.key.KeyPairFactory.generateKeyPairP256;
 import static org.eclipse.edc.junit.testfixtures.TestUtils.getResourceFileContentAsString;
@@ -51,56 +57,57 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class JwtUtilsTest {
+class DecentralizedIdentityServiceGenerationTest {
 
     private final Instant now = Instant.now();
     private final Clock clock = Clock.fixed(now, UTC);
+    private final CredentialsVerifier credentialsVerifierMock = mock(CredentialsVerifier.class);
+    private final DidResolverRegistry didResolverRegistryMock = mock(DidResolverRegistry.class);
     private EcPrivateKeyWrapper privateKey;
     private EcPublicKeyWrapper publicKey;
-
-    @NotNull
-    private static Arguments jwtCase(UnaryOperator<JWTClaimsSet.Builder> builderOperator, boolean expectSuccess, String name) {
-        return Arguments.of(builderOperator, expectSuccess, name);
-    }
+    private final String issuer = "random.did.url";
+    private IdentityService decentralizedIdentityService;
 
     @BeforeEach
     void setup() throws JOSEException {
         privateKey = new EcPrivateKeyWrapper((ECKey) getJwk("private_p256.pem"));
         publicKey = new EcPublicKeyWrapper((ECKey) getJwk("public_p256.pem"));
+        decentralizedIdentityService = new DecentralizedIdentityService(didResolverRegistryMock, credentialsVerifierMock, new ConsoleMonitor(), privateKey, issuer, Clock.systemUTC());
     }
 
     @Test
-    void createVerifiableCredential() throws Exception {
-        var vc = create(privateKey, "test-issuer", "test-subject", "test-audience", clock);
+    void createVerifiableCredential() {
+        var tokenParameters = TokenParameters.Builder.newInstance()
+                .audience("test-audience")
+                .build();
 
-        assertThat(vc).isNotNull();
-        assertThat(vc.getJWTClaimsSet().getIssuer()).isEqualTo("test-issuer");
-        assertThat(vc.getJWTClaimsSet().getSubject()).isEqualTo("test-subject");
-        assertThat(vc.getJWTClaimsSet().getAudience()).containsExactly("test-audience");
-        assertThat(vc.getJWTClaimsSet().getJWTID()).satisfies(UUID::fromString);
-        assertThat(vc.getJWTClaimsSet().getExpirationTime()).isEqualTo(now.plus(10, MINUTES).truncatedTo(SECONDS));
-    }
+        var result = decentralizedIdentityService.obtainClientCredentials(tokenParameters);
 
-    @Test
-    void ensureSerialization() throws Exception {
-        var vc = create(privateKey, "test-issuer", "test-subject", "test-audience", clock);
-
-        assertThat(vc).isNotNull();
-        String jwtString = vc.serialize();
-
-        //deserialize
-        var deserialized = SignedJWT.parse(jwtString);
-
-        assertThat(deserialized.getJWTClaimsSet()).isEqualTo(vc.getJWTClaimsSet());
-        assertThat(deserialized.getHeader().getAlgorithm()).isEqualTo(vc.getHeader().getAlgorithm());
-        assertThat(deserialized.getPayload().toString()).isEqualTo(vc.getPayload().toString());
+        assertThat(result).matches(AbstractResult::succeeded)
+                .extracting(AbstractResult::getContent)
+                .extracting(TokenRepresentation::getToken)
+                .extracting(this::parseToJwt)
+                .satisfies(jwt -> {
+                    assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(issuer);
+                    assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(issuer);
+                    assertThat(jwt.getJWTClaimsSet().getAudience()).containsExactly("test-audience");
+                    assertThat(jwt.getJWTClaimsSet().getJWTID()).satisfies(UUID::fromString);
+                    assertThat(jwt.getJWTClaimsSet().getExpirationTime()).isCloseTo(now.plus(10, MINUTES), 60_000);
+                });
     }
 
     @Test
     void verifyJwt_OnInvalidSignature_fails() {
-        var jwt = create(privateKey, "test-issuer", "test-subject", "test-audience", clock);
+        var tokenParameters = TokenParameters.Builder.newInstance()
+                .audience("test-audience")
+                .build();
+        var result = decentralizedIdentityService.obtainClientCredentials(tokenParameters);
+        var jwt = parseToJwt(result.getContent().getToken());
         var unrelatedPublicKey = new EcPublicKeyWrapper(generateKeyPairP256());
-        assertThat(verify(jwt, unrelatedPublicKey, "test-audience").getFailureMessages()).containsExactly("Invalid signature");
+
+        var verifyResult = verify(jwt, unrelatedPublicKey, "test-audience");
+
+        assertThat(verifyResult.getFailureMessages()).containsExactly("Invalid signature");
     }
 
     @Test
@@ -110,7 +117,6 @@ class JwtUtilsTest {
         when(jwt.verify(any())).thenThrow(new JOSEException(message));
         assertThat(verify(jwt, publicKey, "test-audience").getFailureMessages())
                 .containsExactly("Unable to verify JWT token. " + message);
-
     }
 
     @Test
@@ -126,7 +132,11 @@ class JwtUtilsTest {
     @ParameterizedTest(name = "{2}")
     @ArgumentsSource(ClaimsArgs.class)
     void verifyJwt_OnClaims(UnaryOperator<JWTClaimsSet.Builder> builderOperator, boolean expectSuccess, String ignoredName) throws Exception {
-        var vc = create(privateKey, "test-issuer", "test-subject", "test-audience", clock);
+        var tokenParameters = TokenParameters.Builder.newInstance()
+                .audience("test-audience")
+                .build();
+        var result = decentralizedIdentityService.obtainClientCredentials(tokenParameters);
+        var vc = parseToJwt(result.getContent().getToken());
 
         var claimsSetBuilder = new JWTClaimsSet.Builder(vc.getJWTClaimsSet());
         var claimsSet = builderOperator.apply(claimsSetBuilder).build();
@@ -134,13 +144,18 @@ class JwtUtilsTest {
         var jwt = new SignedJWT(vc.getHeader(), claimsSet);
         jwt.sign(privateKey.signer());
 
-        var result = verify(jwt, publicKey, "test-audience");
-        assertThat(result.succeeded()).isEqualTo(expectSuccess);
+        var verifyResult = verify(jwt, publicKey, "test-audience");
+        assertThat(verifyResult.succeeded()).isEqualTo(expectSuccess);
         if (!expectSuccess) {
-            assertThat(result.getFailureMessages())
+            assertThat(verifyResult.getFailureMessages())
                     .isNotEmpty()
                     .allMatch(m -> m.startsWith("Claim verification failed. "));
         }
+    }
+
+    @NotNull
+    private static Arguments jwtCase(UnaryOperator<JWTClaimsSet.Builder> builderOperator, boolean expectSuccess, String name) {
+        return Arguments.of(builderOperator, expectSuccess, name);
     }
 
     private JWK getJwk(String resourceName) throws JOSEException {
@@ -149,6 +164,7 @@ class JwtUtilsTest {
     }
 
     static class ClaimsArgs implements ArgumentsProvider {
+
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
@@ -167,6 +183,15 @@ class JwtUtilsTest {
                     jwtCase(b -> b.expirationTime(Date.from(Instant.now().plus(1, MINUTES))), true, "future expiration"),
                     jwtCase(b -> b.claim("foo", "bar"), true, "additional claim")
             );
+        }
+    }
+
+    @NotNull
+    private SignedJWT parseToJwt(String it) {
+        try {
+            return SignedJWT.parse(it);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
         }
     }
 }

@@ -46,16 +46,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test the {@link DecentralizedIdentityService} with a key algorithm. See {@link WithP256Test} for concrete impl.
+ * Test the {@link DecentralizedIdentityService} with a key algorithm.
  */
-
-abstract class DecentralizedIdentityServiceTest {
+class DecentralizedIdentityServiceTest {
     private static final String DID_DOCUMENT = getResourceFileContentAsString("dids.json");
 
     private JWK keyPair;
-    private CredentialsVerifier credentialsVerifierMock;
-    private DidResolverRegistry didResolverRegistryMock;
+    private final CredentialsVerifier credentialsVerifierMock = mock(CredentialsVerifier.class);
+    private final DidResolverRegistry didResolverRegistryMock = mock(DidResolverRegistry.class);
     private DecentralizedIdentityService identityService;
+
+    @BeforeEach
+    void setUp() {
+        keyPair = getKeyPair();
+        var privateKey = new EcPrivateKeyWrapper(keyPair.toECKey());
+        var didUrl = "random.did.url";
+        identityService = new DecentralizedIdentityService(didResolverRegistryMock, credentialsVerifierMock, new ConsoleMonitor(), privateKey, didUrl, Clock.systemUTC());
+    }
 
     @Test
     void generateAndVerifyJwtToken_valid() {
@@ -108,14 +115,14 @@ abstract class DecentralizedIdentityServiceTest {
         assertThat(verificationResult.getFailureDetail()).contains(errorMsg);
     }
 
-    private static TokenParameters defaultTokenParameters() {
+    private TokenParameters defaultTokenParameters() {
         return TokenParameters.Builder.newInstance()
                 .scope("Foo")
                 .audience("Bar")
                 .build();
     }
 
-    private static DidDocument createDidDocument(ECKey publicKey) {
+    private DidDocument createDidDocument(ECKey publicKey) {
         try {
             var did = new ObjectMapper().readValue(DID_DOCUMENT, DidDocument.class);
             did.getVerificationMethod().add(VerificationMethod.Builder.create()
@@ -129,24 +136,9 @@ abstract class DecentralizedIdentityServiceTest {
         }
     }
 
-    @BeforeEach
-    void setUp() {
-        keyPair = getKeyPair();
-        var privateKey = new EcPrivateKeyWrapper(keyPair.toECKey());
-        didResolverRegistryMock = mock(DidResolverRegistry.class);
-        credentialsVerifierMock = mock(CredentialsVerifier.class);
-        var didUrl = "random.did.url";
-        identityService = new DecentralizedIdentityService(didResolverRegistryMock, credentialsVerifierMock, new ConsoleMonitor(), privateKey, didUrl, Clock.systemUTC());
-    }
-
     @NotNull
-    protected abstract JWK getKeyPair();
-
-    public static class WithP256Test extends DecentralizedIdentityServiceTest {
-        @Override
-        protected @NotNull ECKey getKeyPair() {
-            return KeyPairFactory.generateKeyPairP256();
-        }
-
+    private JWK getKeyPair() {
+        return KeyPairFactory.generateKeyPairP256();
     }
+
 }

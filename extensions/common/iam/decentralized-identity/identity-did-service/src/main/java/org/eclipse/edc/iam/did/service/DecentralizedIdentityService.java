@@ -25,6 +25,8 @@ import org.eclipse.edc.iam.did.spi.document.DidDocument;
 import org.eclipse.edc.iam.did.spi.document.VerificationMethod;
 import org.eclipse.edc.iam.did.spi.key.PrivateKeyWrapper;
 import org.eclipse.edc.iam.did.spi.resolution.DidResolverRegistry;
+import org.eclipse.edc.jwt.TokenGenerationServiceImpl;
+import org.eclipse.edc.jwt.spi.JwtDecorator;
 import org.eclipse.edc.spi.iam.ClaimToken;
 import org.eclipse.edc.spi.iam.IdentityService;
 import org.eclipse.edc.spi.iam.TokenParameters;
@@ -35,30 +37,69 @@ import org.jetbrains.annotations.NotNull;
 
 import java.text.ParseException;
 import java.time.Clock;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+
+import static org.eclipse.edc.jwt.spi.JwtRegisteredClaimNames.AUDIENCE;
+import static org.eclipse.edc.jwt.spi.JwtRegisteredClaimNames.EXPIRATION_TIME;
+import static org.eclipse.edc.jwt.spi.JwtRegisteredClaimNames.ISSUER;
+import static org.eclipse.edc.jwt.spi.JwtRegisteredClaimNames.JWT_ID;
+import static org.eclipse.edc.jwt.spi.JwtRegisteredClaimNames.SUBJECT;
 
 public class DecentralizedIdentityService implements IdentityService {
     private final DidResolverRegistry resolverRegistry;
     private final CredentialsVerifier credentialsVerifier;
     private final Monitor monitor;
-    private final PrivateKeyWrapper privateKey;
     private final String issuer;
     private final Clock clock;
+    private final TokenGenerationServiceImpl tokenGenerationService;
 
     public DecentralizedIdentityService(DidResolverRegistry resolverRegistry, CredentialsVerifier credentialsVerifier, Monitor monitor, PrivateKeyWrapper privateKey, String issuer, Clock clock) {
         this.resolverRegistry = resolverRegistry;
         this.credentialsVerifier = credentialsVerifier;
         this.monitor = monitor;
-        this.privateKey = privateKey;
         this.issuer = issuer;
         this.clock = clock;
+        this.tokenGenerationService = new TokenGenerationServiceImpl(privateKey.signer());
     }
 
+    /** TODO: update documentation
+     * Creates a signed JWT {@link SignedJWT} that contains a set of claims and an issuer. Although all private key types are possible, in the context of Distributed Identity
+     * using an Elliptic Curve key ({@code P-256}) is advisable.
+     *
+     * @param privateKey A Private Key represented as {@link PrivateKeyWrapper}.
+     * @param issuer     the value of the token issuer claim.
+     * @param subject    the value of the token subject claim. For Distributed Identity, this value is identical to the issuer claim.
+     * @param audience   the value of the token audience claim, e.g. the IDS Webhook address.
+     * @param clock      clock used to get current time.
+     * @return a {@code SignedJWT} that is signed with the private key and contains all claims listed.
+     */
     @Override
     public Result<TokenRepresentation> obtainClientCredentials(TokenParameters parameters) {
-        var jwt = JwtUtils.create(privateKey, issuer, issuer, parameters.getAudience(), clock);
-        var token = jwt.serialize();
-        return Result.success(TokenRepresentation.Builder.newInstance().token(token).build());
+        var decorator = new JwtDecorator() {
+            @Override
+            public Map<String, Object> claims() {
+                return Map.of(
+                        ISSUER, issuer,
+                        SUBJECT, issuer,
+                        AUDIENCE, List.of(parameters.getAudience()),
+                        JWT_ID, UUID.randomUUID().toString(),
+                        EXPIRATION_TIME, Date.from(clock.instant().plus(10, ChronoUnit.MINUTES))
+                );
+            }
+
+            @Override
+            public Map<String, Object> headers() {
+                return Collections.emptyMap();
+            }
+        };
+
+        return tokenGenerationService.generate(decorator);
     }
 
     @Override

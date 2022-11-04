@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     api(project(":spi:common:identity-did-spi"))
+    implementation(project(":core:common:jwt-core"))
     implementation(project(":extensions:common:iam:decentralized-identity:identity-did-crypto"))
 
     testImplementation(testFixtures(project(":extensions:common:iam:decentralized-identity:identity-did-test")))

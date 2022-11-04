@@ -52,8 +52,11 @@ public class TokenGenerationServiceImpl implements TokenGenerationService {
     private final JwtDecorator baseDecorator;
 
     public TokenGenerationServiceImpl(PrivateKey privateKey) {
-        Objects.requireNonNull(privateKey, "Private key must not be null");
-        this.tokenSigner = createSigner(privateKey);
+        this(createSigner(privateKey));
+    }
+
+    public TokenGenerationServiceImpl(JWSSigner signer) {
+        this.tokenSigner = signer;
         JWSAlgorithm jwsAlgorithm;
         if (tokenSigner instanceof ECDSASigner) {
             jwsAlgorithm = JWSAlgorithm.ES256;
