@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Microsoft Corporation - initial API and implementation
+ *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG) - improvements
  *
  */
 
@@ -25,12 +26,16 @@ import java.io.OutputStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
-import static org.eclipse.edc.spi.response.ResponseStatus.ERROR_RETRY;
+import static org.eclipse.edc.spi.response.ResponseStatus.FATAL_ERROR;
 import static org.eclipse.edc.util.async.AsyncUtils.asyncAllOf;
 
 /**
  * Sends data to an output stream. The transfer is done asynchronously using the supplied executor service.
+ * <p>
+ * In case of exception the transfer will fail with a FATAL_ERROR. The retry mechanism should be handled in the
+ * {@link DataSource} implementation.
  */
 public class OutputStreamDataSink implements DataSink {
     private final OutputStream stream;
@@ -51,13 +56,13 @@ public class OutputStreamDataSink implements DataSink {
                     .collect(asyncAllOf())
                     .thenApply(results -> {
                         if (results.stream().anyMatch(AbstractResult::failed)) {
-                            return StatusResult.failure(ERROR_RETRY, "Error transferring data");
+                            return StatusResult.failure(FATAL_ERROR, "Error transferring data");
                         }
                         return StatusResult.success();
                     });
         } catch (Exception e) {
             monitor.severe("Error processing data transfer request", e);
-            return CompletableFuture.completedFuture(StatusResult.failure(ERROR_RETRY, "Error processing data transfer request"));
+            return completedFuture(StatusResult.failure(FATAL_ERROR, "Error processing data transfer request"));
         }
     }
 
