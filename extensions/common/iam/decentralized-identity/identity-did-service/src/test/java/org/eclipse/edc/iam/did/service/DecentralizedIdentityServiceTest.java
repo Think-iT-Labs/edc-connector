@@ -89,7 +89,7 @@ class DecentralizedIdentityServiceTest {
 
         var verificationResult = identityService.verifyJwtToken(result.getContent(), "Bar");
         assertTrue(verificationResult.failed());
-        assertThat(verificationResult.getFailureMessages()).contains("Token could not be verified!");
+        assertThat(verificationResult.getFailureMessages()).contains("Failed to validate token: Token verification failed");
     }
 
     @Test

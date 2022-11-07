@@ -61,13 +61,26 @@ public class KeyConverter {
      * @throws IllegalArgumentException if an invalid public key (something other than "EC") is passed or if the runtime-type is not {@link EllipticCurvePublicKey}
      */
     public static @NotNull PublicKeyWrapper toPublicKeyWrapper(JwkPublicKey publicKey, String id) {
+        return new EcPublicKeyWrapper(toPublicKey(publicKey, id));
+    }
+
+    /**
+     * Converts a {@link JwkPublicKey}, that is coming from one of the {@link DidDocument#getVerificationMethod()}s and converts it into a {@link PublicKeyWrapper}
+     * <em>Note that currently only Elliptic-Curve public Keys are supported! An exception will be thrown if {@link JwkPublicKey#getKty()} is anything other than "EC" or "ec"!</em>
+     *
+     * @param publicKey The instance of the {@code JwkPublicKey}
+     * @param id        An arbitrary ID that serves as 'kid' property
+     * @return A {@link PublicKeyWrapper}
+     * @throws IllegalArgumentException if an invalid public key (something other than "EC") is passed or if the runtime-type is not {@link EllipticCurvePublicKey}
+     */
+    public static ECKey toPublicKey(JwkPublicKey publicKey, String id) {
         switch (publicKey.getKty()) {
             case "EC":
             case "ec":
                 if (!(publicKey instanceof EllipticCurvePublicKey)) {
                     throw new IllegalArgumentException(format("Public key has 'kty' = '%s' but its Java type was %s!", publicKey.getKty(), publicKey.getClass()));
                 }
-                return new EcPublicKeyWrapper(toEcKey((EllipticCurvePublicKey) publicKey, id));
+                return toEcKey((EllipticCurvePublicKey) publicKey, id);
             default:
                 throw new IllegalArgumentException(format("Only public-key-JWK of type 'EC' can be used at the moment, but '%s' was specified!", publicKey.getKty()));
         }

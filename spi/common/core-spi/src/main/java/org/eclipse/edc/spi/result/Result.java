@@ -136,6 +136,15 @@ public class Result<T> extends AbstractResult<T, Failure> {
         return mappingFunction.apply(this);
     }
 
+    // TODO: document and test
+    public <U> Result<U> compose(Function<T, Result<U>> mappingFunction) {
+        if (this.succeeded()) {
+            return mappingFunction.apply(this.getContent());
+        } else {
+            return this.mapTo();
+        }
+    }
+
     /**
      * Converts this result into an {@link Optional}. When this result is failed, or there is no content,
      * {@link Optional#isEmpty()} is returned, otherwise the content is the {@link Optional}'s value
