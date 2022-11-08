@@ -90,24 +90,7 @@ public class DecentralizedIdentityService implements IdentityService {
      */
     @Override
     public Result<TokenRepresentation> obtainClientCredentials(TokenParameters parameters) {
-        var decorator = new JwtDecorator() {
-            @Override
-            public Map<String, Object> claims() {
-                return Map.of(
-                        ISSUER, issuer,
-                        SUBJECT, issuer,
-                        AUDIENCE, List.of(parameters.getAudience()),
-                        JWT_ID, UUID.randomUUID().toString(),
-                        EXPIRATION_TIME, Date.from(clock.instant().plus(10, ChronoUnit.MINUTES))
-                );
-            }
-
-            @Override
-            public Map<String, Object> headers() {
-                return Collections.emptyMap();
-            }
-        };
-
+        var decorator = new DidJwtDecorator(parameters.getAudience());
         return tokenGenerationService.generate(decorator);
     }
 
@@ -134,7 +117,7 @@ public class DecentralizedIdentityService implements IdentityService {
     }
 
     @NotNull
-    private static TokenValidationRulesRegistry getTokenValidationRulesRegistry(String audience) {
+    private TokenValidationRulesRegistry getTokenValidationRulesRegistry(String audience) {
         var registry = new TokenValidationRulesRegistryImpl();
         registry.addRule(new DidTokenValidationRule(audience));
         return registry;
@@ -200,6 +183,30 @@ public class DecentralizedIdentityService implements IdentityService {
             }
 
             return Result.success();
+        }
+    }
+
+    private class DidJwtDecorator implements JwtDecorator {
+        private final String audience;
+
+        public DidJwtDecorator(String audience) {
+            this.audience = audience;
+        }
+
+        @Override
+        public Map<String, Object> claims() {
+            return Map.of(
+                    ISSUER, issuer,
+                    SUBJECT, issuer,
+                    AUDIENCE, List.of(audience),
+                    JWT_ID, UUID.randomUUID().toString(),
+                    EXPIRATION_TIME, Date.from(clock.instant().plus(10, ChronoUnit.MINUTES))
+            );
+        }
+
+        @Override
+        public Map<String, Object> headers() {
+            return Collections.emptyMap();
         }
     }
 }

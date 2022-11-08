@@ -80,7 +80,6 @@ class ResultTest {
         var result = r1.merge(r2);
         assertThat(result.failed()).isTrue();
         assertThat(result.getFailureMessages()).hasSize(1).containsExactly("reason 1");
-
     }
 
     @Test
@@ -160,7 +159,6 @@ class ResultTest {
         assertThat(mapped.getFailureDetail()).isEqualTo("foobar");
     }
 
-
     @Test
     void whenSuccess_chainsSuccesses() {
         var result1 = Result.success("res1");
@@ -221,11 +219,23 @@ class ResultTest {
                 .isInstanceOf(RuntimeException.class);
     }
 
-    private <U> Function<Result<U>, Result<String>> failWhenCalled() {
-        return r -> {
-            fail("should not be called!");
-            return Result.success("next result");
-        };
+    @Test
+    void compose_appliesFunctionReturningResult() {
+        var result = Result.success("content");
+
+        var composed = result.compose(it -> Result.success(4));
+
+        assertThat(composed).matches(AbstractResult::succeeded)
+                .extracting(AbstractResult::getContent).isEqualTo(4);
     }
 
+    @Test
+    void compose_wontApplyFunctionIfResultIsFailed() {
+        var result = Result.failure("error");
+
+        var composed = result.compose(it -> Result.success(4));
+
+        assertThat(composed).matches(AbstractResult::failed)
+                .extracting(AbstractResult::getFailureMessages).asList().contains("error");
+    }
 }

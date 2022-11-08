@@ -136,7 +136,12 @@ public class Result<T> extends AbstractResult<T, Failure> {
         return mappingFunction.apply(this);
     }
 
-    // TODO: document and test
+    /**
+     * Compose one result with the mapping function. If the result is failed the function won't be applied.
+     *
+     * @param mappingFunction a function composing the content of the result.
+     * @return the result of the mapping function
+     */
     public <U> Result<U> compose(Function<T, Result<U>> mappingFunction) {
         if (this.succeeded()) {
             return mappingFunction.apply(this.getContent());
