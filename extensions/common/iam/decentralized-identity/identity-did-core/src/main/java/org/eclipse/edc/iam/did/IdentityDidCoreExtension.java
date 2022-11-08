@@ -31,6 +31,8 @@ import org.eclipse.edc.spi.security.PrivateKeyResolver;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 
+import java.security.PrivateKey;
+
 
 @Provides({ DidResolverRegistry.class, DidPublicKeyResolver.class })
 @Extension(value = IdentityDidCoreExtension.NAME)
@@ -62,6 +64,14 @@ public class IdentityDidCoreExtension implements ServiceExtension {
         resolver.addParser(ECKey.class, encoded -> {
             try {
                 return (ECKey) JWK.parseFromPEMEncodedObjects(encoded);
+            } catch (JOSEException e) {
+                throw new EdcException(e);
+            }
+        });
+        resolver.addParser(PrivateKey.class, encoded -> {
+            try {
+                var ecKey = (ECKey) JWK.parseFromPEMEncodedObjects(encoded);
+                return ecKey;
             } catch (JOSEException e) {
                 throw new EdcException(e);
             }

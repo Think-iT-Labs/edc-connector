@@ -22,10 +22,6 @@ import com.nimbusds.jose.JWSSigner;
  */
 public interface PrivateKeyWrapper {
 
-    /**
-     * Returns the JWE encrypter for the wrapped key.
-     */
-    JWEDecrypter decrypter();
 
     /**
      * Returns the JWE verifier for the wrapped key.

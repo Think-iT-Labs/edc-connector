@@ -30,11 +30,6 @@ public class RsaPrivateKeyWrapper implements PrivateKeyWrapper {
     }
 
     @Override
-    public JWEDecrypter decrypter() {
-        return new RSADecrypter(privateKey);
-    }
-
-    @Override
     public JWSSigner signer() {
         return new RSASSASigner(privateKey);
     }

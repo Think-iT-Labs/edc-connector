@@ -31,15 +31,6 @@ public class EcPrivateKeyWrapper implements PrivateKeyWrapper {
     }
 
     @Override
-    public JWEDecrypter decrypter() {
-        try {
-            return new ECDHDecrypter(privateKey);
-        } catch (JOSEException e) {
-            throw new CryptoException(e);
-        }
-    }
-
-    @Override
     public JWSSigner signer() {
         try {
             return new ECDSASigner(privateKey);
