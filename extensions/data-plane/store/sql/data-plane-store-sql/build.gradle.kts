@@ -9,6 +9,7 @@ dependencies {
 
     implementation(project(":spi:common:transaction-datasource-spi"))
     implementation(project(":extensions:common:sql:sql-core"))
+    implementation(project(":extensions:common:transaction:transaction-local"))
 
     testImplementation(project(":core:common:junit"))
     testImplementation(testFixtures(project(":spi:data-plane:data-plane-spi")))

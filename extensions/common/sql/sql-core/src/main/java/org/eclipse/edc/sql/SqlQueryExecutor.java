@@ -16,6 +16,7 @@
 package org.eclipse.edc.sql;
 
 import org.eclipse.edc.spi.persistence.EdcPersistenceException;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.sql.Connection;
@@ -59,58 +60,78 @@ public final class SqlQueryExecutor {
         }
     }
 
-    public static <T> T executeQuerySingle(Connection connection, boolean closeConnection, ResultSetMapper<T> resultSetMapper, String sql, Object... arguments) {
-        try (var stream = executeQuery(connection, closeConnection, resultSetMapper, sql, arguments)) {
+    /**
+     * Query and get single item.
+     *
+     * @param context the transactional context
+     * @param connection the connection to be used to execute the query.
+     * @param resultSetMapper able to map a row to an object e.g. pojo.
+     * @param sql the parametrized sql query
+     * @param arguments the parameters to interpolate with the parametrized sql query
+     * @param <T> generic type returned after mapping from the executed query
+     * @return a Stream on the results, must be collected into a transactional context block.
+     */
+    public static <T> T executeQuerySingle(TransactionContext context, Connection connection, ResultSetMapper<T> resultSetMapper, String sql, Object... arguments) {
+        try (var stream = executeQuery(context, connection, resultSetMapper, sql, arguments)) {
             return stream.findFirst().orElse(null);
         }
     }
 
     /**
      * Intended for reading queries.
-     * The resulting {@link Stream} must be closed with the "close()" when a terminal operation is used on the stream
-     * (collect, forEach, anyMatch, etc...)
+     * The resulting {@link Stream} must be collected inside a {@link TransactionContext} block, because the connection
+     * and the related resources (statement, resultSet) are closed when the block terminates.
      *
+     * @param context the transactional context.
      * @param connection the connection to be used to execute the query.
-     * @param closeConnection if true the connection will be closed on stream closure, else it won't be closed.
      * @param resultSetMapper able to map a row to an object e.g. pojo.
      * @param sql the parametrized sql query
-     * @param arguments the parameteres to interpolate with the parametrized sql query
+     * @param arguments the parameters to interpolate with the parametrized sql query
      * @param <T> generic type returned after mapping from the executed query
-     * @return a Stream on the results, must be closed when a terminal operation is used on the stream (collect, forEach, anyMatch, etc...)
+     * @return a Stream on the results, must be collected into a transactional context block.
      */
-    public static <T> Stream<T> executeQuery(Connection connection, boolean closeConnection, ResultSetMapper<T> resultSetMapper, String sql, Object... arguments) {
+    public static <T> Stream<T> executeQuery(TransactionContext context, Connection connection, ResultSetMapper<T> resultSetMapper, String sql, Object... arguments) {
+        Objects.requireNonNull(context, "transactionContext");
         Objects.requireNonNull(connection, "connection");
         Objects.requireNonNull(resultSetMapper, "resultSetMapper");
         Objects.requireNonNull(sql, "sql");
         Objects.requireNonNull(arguments, "arguments");
 
-        var doorKeeper = new DoorKeeper();
         try {
-            if (closeConnection) {
-                doorKeeper.takeCareOf(connection);
-            }
             var statement = connection.prepareStatement(sql);
-            doorKeeper.takeCareOf(statement);
+            context.registerSynchronization(() -> close(statement));
             statement.setFetchSize(5000);
             setArguments(statement, arguments);
-            var resultSet = statement.executeQuery();
-            doorKeeper.takeCareOf(resultSet);
-            var splititerator = createSpliterator(resultSetMapper, resultSet);
-            return stream(splititerator, false).onClose(doorKeeper::close);
-        } catch (SQLException sqlEx) {
-            try {
-                doorKeeper.close();
-            } catch (Exception ex) {
-                sqlEx.addSuppressed(ex);
-            }
 
+            var resultSet = statement.executeQuery();
+            context.registerSynchronization(() -> close(resultSet));
+
+            var splititerator = createSpliterator(resultSetMapper, resultSet);
+            return stream(splititerator, false);
+        } catch (SQLException sqlEx) {
             throw new EdcPersistenceException(sqlEx);
+        }
+    }
+
+    private static void close(PreparedStatement statement) {
+        try {
+            statement.close();
+        } catch (SQLException ignored) {
+
+        }
+    }
+
+    private static void close(ResultSet resultSet) {
+        try {
+            resultSet.close();
+        } catch (SQLException ignored) {
+
         }
     }
 
     @NotNull
     private static <T> Spliterators.AbstractSpliterator<T> createSpliterator(ResultSetMapper<T> resultSetMapper, ResultSet resultSet) {
-        return new Spliterators.AbstractSpliterator<T>(Long.MAX_VALUE, Spliterator.ORDERED) {
+        return new Spliterators.AbstractSpliterator<>(Long.MAX_VALUE, Spliterator.ORDERED) {
             @Override
             public boolean tryAdvance(Consumer<? super T> action) {
                 try {

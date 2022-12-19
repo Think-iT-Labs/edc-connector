@@ -14,6 +14,8 @@
 
 package org.eclipse.edc.sql.lease;
 
+import org.eclipse.edc.transaction.spi.NoopTransactionContext;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -26,10 +28,10 @@ abstract class LeaseContextTest {
 
     protected static final String LEASE_HOLDER = "test-leaser";
     protected final Instant now = Clock.systemUTC().instant();
+    protected final TransactionContext transactionContext = new NoopTransactionContext();
 
     @Test
     void breakLease() {
-
         insertTestEntity("id1");
         getLeaseContext().acquireLease("id1");
         assertThat(isLeased("id1")).isTrue();

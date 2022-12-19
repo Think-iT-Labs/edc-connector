@@ -34,9 +34,7 @@ import static org.eclipse.edc.sql.SqlQueryExecutor.executeQuerySingle;
  */
 public class SqlDataPlaneStore extends AbstractSqlStore implements DataPlaneStore {
 
-
     private final DataPlaneStatements statements;
-
     private final Clock clock;
 
     public SqlDataPlaneStore(DataSourceRegistry dataSourceRegistry, String dataSourceName, TransactionContext transactionContext, DataPlaneStatements statements, ObjectMapper objectMapper, Clock clock) {
@@ -80,7 +78,7 @@ public class SqlDataPlaneStore extends AbstractSqlStore implements DataPlaneStor
 
     }
 
-    public State mapToState(ResultSet resultSet) throws Exception {
+    private State mapToState(ResultSet resultSet) throws Exception {
         var stateCode = resultSet.getInt(statements.getStateColumn());
         return State.from(stateCode);
     }
@@ -95,7 +93,7 @@ public class SqlDataPlaneStore extends AbstractSqlStore implements DataPlaneStor
 
     private State stateById(Connection connection, String processId) {
         var sql = statements.getFindByIdTemplate();
-        return executeQuerySingle(connection, false, this::mapToState, sql, processId);
+        return executeQuerySingle(transactionContext, connection, this::mapToState, sql, processId);
     }
 
     private void insert(Connection connection, String processId, State state) {

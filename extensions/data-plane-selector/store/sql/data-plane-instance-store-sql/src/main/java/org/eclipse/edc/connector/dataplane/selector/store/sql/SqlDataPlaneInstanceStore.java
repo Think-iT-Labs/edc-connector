@@ -25,7 +25,6 @@ import org.eclipse.edc.transaction.spi.TransactionContext;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -95,18 +94,15 @@ public class SqlDataPlaneInstanceStore extends AbstractSqlStore implements DataP
 
     @Override
     public Stream<DataPlaneInstance> getAll() {
-        try {
+        return transactionContext.execute(() -> {
             var sql = statements.getAllTemplate();
-            return executeQuery(getConnection(), true, this::mapResultSet, sql);
-        } catch (SQLException exception) {
-            throw new EdcPersistenceException(exception);
-        }
+            return executeQuery(transactionContext, getConnection(), this::mapResultSet, sql);
+        });
     }
-
 
     private DataPlaneInstance findByIdInternal(Connection connection, String id) {
         var sql = statements.getFindByIdTemplate();
-        return executeQuerySingle(connection, false, this::mapResultSet, sql, id);
+        return executeQuerySingle(transactionContext, connection, this::mapResultSet, sql, id);
     }
 
     private void insert(Connection connection, DataPlaneInstance instance) {

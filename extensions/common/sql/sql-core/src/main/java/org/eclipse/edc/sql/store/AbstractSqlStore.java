@@ -43,8 +43,12 @@ public abstract class AbstractSqlStore {
         this.objectMapper = Objects.requireNonNull(objectMapper);
     }
 
-    protected Connection getConnection() throws SQLException {
-        return getDataSource().getConnection();
+    protected Connection getConnection() {
+        try {
+            return getDataSource().getConnection();
+        } catch (SQLException e) {
+            throw new EdcPersistenceException("Cannot get SQL connection", e);
+        }
     }
 
     protected String toJson(Object object) {

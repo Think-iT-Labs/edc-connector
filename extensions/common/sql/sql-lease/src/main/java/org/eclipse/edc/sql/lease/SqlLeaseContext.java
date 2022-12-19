@@ -107,7 +107,7 @@ public class SqlLeaseContext implements LeaseContext {
      */
     public @Nullable SqlLease getLease(String entityId) {
         var stmt = statements.getFindLeaseByEntityTemplate();
-        return executeQuerySingle(connection, false, this::mapLease, stmt, entityId);
+        return executeQuerySingle(trxContext, connection, this::mapLease, stmt, entityId);
     }
 
     private SqlLease mapLease(ResultSet resultSet) throws SQLException {

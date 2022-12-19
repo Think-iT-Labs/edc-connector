@@ -16,6 +16,7 @@
 package org.eclipse.edc.sql;
 
 import org.eclipse.edc.spi.persistence.EdcPersistenceException;
+import org.eclipse.edc.transaction.spi.NoopTransactionContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class SqlQueryExecutorIntegrationTest {
 
     private Connection connection;
+    private final NoopTransactionContext context = new NoopTransactionContext();
 
     @BeforeEach
     void setUp() throws SQLException {
@@ -49,59 +51,54 @@ public class SqlQueryExecutorIntegrationTest {
     }
 
     @Test
-    void executeQuery_doesNotCloseConnection() throws SQLException {
+    void executeQuery() {
         ResultSetMapper<Long> mapper = (rs) -> rs.getLong(1);
         var sql = "SELECT 1;";
 
-        var result = SqlQueryExecutor.executeQuery(connection, false, mapper, sql);
-
-        assertThat(result).isNotNull().hasSize(1).contains(1L); // assert stream closes the stream
-        assertThat(connection.isClosed()).isFalse();
-    }
-
-    @Test
-    void executeQuery_closesConnection() throws SQLException {
-        ResultSetMapper<Long> mapper = (rs) -> rs.getLong(1);
-        var sql = "SELECT 1;";
-
-        var result = SqlQueryExecutor.executeQuery(connection, true, mapper, sql);
-
-        assertThat(result).isNotNull().hasSize(1).contains(1L); // assert stream closes the stream
-        assertThat(connection.isClosed()).isTrue();
+        context.execute(() -> {
+            var result = SqlQueryExecutor.executeQuery(context, connection, mapper, sql);
+            assertThat(result).isNotNull().hasSize(1).contains(1L);
+        });
     }
 
     @Test
     void executeQuerySingle() {
-        SqlQueryExecutor.executeQuery(connection, "CREATE TABLE test (data VARCHAR(80) primary key not null);");
-        SqlQueryExecutor.executeQuery(connection, "INSERT INTO test values ('value');");
-        var sql = "SELECT data FROM test WHERE data = ?";
-        ResultSetMapper<String> mapper = rs -> rs.getString(1);
+        context.execute(() -> {
+            SqlQueryExecutor.executeQuery(connection, "CREATE TABLE test (data VARCHAR(80) primary key not null);");
+            SqlQueryExecutor.executeQuery(connection, "INSERT INTO test values ('value');");
+            var sql = "SELECT data FROM test WHERE data = ?";
+            ResultSetMapper<String> mapper = rs -> rs.getString(1);
 
-        var found = SqlQueryExecutor.executeQuerySingle(connection, false, mapper, sql, "value");
-        assertThat(found).isEqualTo("value");
+            var found = SqlQueryExecutor.executeQuerySingle(context, connection, mapper, sql, "value");
+            assertThat(found).isEqualTo("value");
 
-        var notFound = SqlQueryExecutor.executeQuerySingle(connection, false, mapper, sql, "any other");
-        assertThat(notFound).isEqualTo(null);
+            var notFound = SqlQueryExecutor.executeQuerySingle(context, connection, mapper, sql, "any other");
+            assertThat(notFound).isEqualTo(null);
+        });
     }
 
     @Test
     void testTransactionAndResultSetMapper() {
-        var table = "kv_testTransactionAndResultSetMapper";
-        var kv = new Kv(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        context.execute(() -> {
+            var table = "kv_testTransactionAndResultSetMapper";
+            var kv = new Kv(UUID.randomUUID().toString(), UUID.randomUUID().toString());
 
-        SqlQueryExecutor.executeQuery(connection, getTableSchema(table));
-        SqlQueryExecutor.executeQuery(connection, format("INSERT INTO %s (k, v) values (?, ?)", table), kv.key, kv.value);
+            SqlQueryExecutor.executeQuery(connection, getTableSchema(table));
+            SqlQueryExecutor.executeQuery(connection, format("INSERT INTO %s (k, v) values (?, ?)", table), kv.key, kv.value);
 
-        var countResult = SqlQueryExecutor.executeQuery(connection, false, (rs) -> rs.getInt(1), format("SELECT COUNT(*) FROM %s", table));
-        assertThat(countResult).hasSize(1).first().isEqualTo(1);
+            var countResult = SqlQueryExecutor.executeQuery(context, connection, (rs) -> rs.getInt(1), format("SELECT COUNT(*) FROM %s", table));
+            assertThat(countResult).hasSize(1).first().isEqualTo(1);
 
-        var kvs = SqlQueryExecutor.executeQuery(connection, false, (rs) -> new Kv(rs.getString(1), rs.getString(2)), format("SELECT * FROM %s", table));
-        assertThat(kvs).hasSize(1).first().isEqualTo(kv);
+            var kvs = SqlQueryExecutor.executeQuery(context, connection, (rs) -> new Kv(rs.getString(1), rs.getString(2)), format("SELECT * FROM %s", table));
+            assertThat(kvs).hasSize(1).first().isEqualTo(kv);
+        });
     }
 
     @Test
     void testInvalidSql() {
-        assertThatThrownBy(() -> SqlQueryExecutor.executeQuery(connection, "Lorem ipsum dolor sit amet")).isInstanceOf(EdcPersistenceException.class);
+        context.execute(() -> {
+            assertThatThrownBy(() -> SqlQueryExecutor.executeQuery(connection, "Lorem ipsum dolor sit amet")).isInstanceOf(EdcPersistenceException.class);
+        });
     }
 
     private String getTableSchema(String tableName) {

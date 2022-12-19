@@ -38,14 +38,6 @@ public class LeaseUtil {
         leaseContextBuilder = SqlLeaseContextBuilder.with(context, "test", statements, clock);
     }
 
-    public void leaseEntity(String tpId, String leaseHolder) {
-        try (var conn = connectionSupplier.get()) {
-            leaseContextBuilder.by(leaseHolder).withConnection(conn).acquireLease(tpId);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public void leaseEntity(String tpId, String leaseHolder, Duration leaseDuration) {
         try (var conn = connectionSupplier.get()) {
             leaseContextBuilder.by(leaseHolder).forTime(leaseDuration).withConnection(conn).acquireLease(tpId);

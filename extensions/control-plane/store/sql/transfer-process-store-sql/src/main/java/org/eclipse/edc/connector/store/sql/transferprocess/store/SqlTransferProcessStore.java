@@ -26,7 +26,6 @@ import org.eclipse.edc.connector.transfer.spi.types.TransferType;
 import org.eclipse.edc.spi.persistence.EdcPersistenceException;
 import org.eclipse.edc.spi.query.QuerySpec;
 import org.eclipse.edc.spi.types.domain.DataAddress;
-import org.eclipse.edc.sql.SqlQueryExecutor;
 import org.eclipse.edc.sql.lease.SqlLeaseContextBuilder;
 import org.eclipse.edc.sql.store.AbstractSqlStore;
 import org.eclipse.edc.transaction.datasource.spi.DataSourceRegistry;
@@ -44,6 +43,7 @@ import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
+import static org.eclipse.edc.sql.SqlQueryExecutor.executeQuery;
 import static org.eclipse.edc.sql.SqlQueryExecutor.executeQuerySingle;
 
 /**
@@ -71,7 +71,7 @@ public class SqlTransferProcessStore extends AbstractSqlStore implements Transfe
 
             try (
                     var connection = getConnection();
-                    var stream = SqlQueryExecutor.executeQuery(connection, true, this::mapTransferProcess, stmt, state, now, max)
+                    var stream = executeQuery(transactionContext, connection, this::mapTransferProcess, stmt, state, now, max)
             ) {
                 var transferProcesses = stream.collect(toList());
                 transferProcesses.forEach(t -> leaseContext.by(leaseHolderName).withConnection(connection).acquireLease(t.getId()));
@@ -95,11 +95,7 @@ public class SqlTransferProcessStore extends AbstractSqlStore implements Transfe
     public @Nullable String processIdForDataRequestId(String transferId) {
         return transactionContext.execute(() -> {
             var stmt = statements.getProcessIdForTransferIdTemplate();
-            try {
-                return executeQuerySingle(getConnection(), true, (rs) -> rs.getString(statements.getIdColumn()), stmt, transferId);
-            } catch (SQLException e) {
-                throw new EdcPersistenceException(e);
-            }
+            return executeQuerySingle(transactionContext, getConnection(), (rs) -> rs.getString(statements.getIdColumn()), stmt, transferId);
         });
     }
 
@@ -135,7 +131,7 @@ public class SqlTransferProcessStore extends AbstractSqlStore implements Transfe
                     leaseContext.by(leaseHolderName).withConnection(conn).acquireLease(processId);
 
                     var stmt = statements.getDeleteTransferProcessTemplate();
-                    SqlQueryExecutor.executeQuery(conn, stmt, processId);
+                    executeQuery(conn, stmt, processId);
 
                     //necessary to delete the row in edc_lease
                     leaseContext.by(leaseHolderName).withConnection(conn).breakLease(processId);
@@ -150,11 +146,8 @@ public class SqlTransferProcessStore extends AbstractSqlStore implements Transfe
     @Override
     public Stream<TransferProcess> findAll(QuerySpec querySpec) {
         return transactionContext.execute(() -> {
-            try (var conn = getConnection()) {
-                return executeQuery(conn, querySpec);
-            } catch (SQLException e) {
-                throw new EdcPersistenceException(e);
-            }
+            var statement = statements.createQuery(querySpec);
+            return executeQuery(transactionContext, getConnection(), this::mapTransferProcess, statement.getQueryAsString(), statement.getParameters());
         });
     }
 
@@ -176,19 +169,15 @@ public class SqlTransferProcessStore extends AbstractSqlStore implements Transfe
 
     private @Nullable TransferProcess findByIdInternal(Connection conn, String id) {
         return transactionContext.execute(() -> {
-            var q = QuerySpec.Builder.newInstance().filter("id = " + id).build();
-            return single(executeQuery(conn, q).collect(toList()));
+            var query = QuerySpec.Builder.newInstance().filter("id = " + id).build();
+            var statement = statements.createQuery(query);
+            return single(executeQuery(transactionContext, conn, this::mapTransferProcess, statement.getQueryAsString(), statement.getParameters()).collect(toList()));
         });
-    }
-
-    private Stream<TransferProcess> executeQuery(Connection connection, QuerySpec querySpec) {
-        var statement = statements.createQuery(querySpec);
-        return SqlQueryExecutor.executeQuery(connection, true, this::mapTransferProcess, statement.getQueryAsString(), statement.getParameters());
     }
 
     private void update(Connection conn, TransferProcess process, String existingDataRequestId) {
         var updateStmt = statements.getUpdateTransferProcessTemplate();
-        SqlQueryExecutor.executeQuery(conn, updateStmt, process.getState(),
+        executeQuery(conn, updateStmt, process.getState(),
                 process.getStateCount(),
                 process.getStateTimestamp(),
                 toJson(process.getTraceContext()),
@@ -207,7 +196,7 @@ public class SqlTransferProcessStore extends AbstractSqlStore implements Transfe
     private void updateDataRequest(Connection conn, DataRequest dataRequest, String existingDataRequestId) {
         var updateDrStmt = statements.getUpdateDataRequestTemplate();
 
-        SqlQueryExecutor.executeQuery(conn, updateDrStmt,
+        executeQuery(conn, updateDrStmt,
                 dataRequest.getId(),
                 dataRequest.getProcessId(),
                 dataRequest.getConnectorAddress(),
@@ -241,7 +230,7 @@ public class SqlTransferProcessStore extends AbstractSqlStore implements Transfe
     private void insert(Connection conn, TransferProcess process) {
         // insert TransferProcess
         var insertTpStatement = statements.getInsertStatement();
-        SqlQueryExecutor.executeQuery(conn, insertTpStatement, process.getId(),
+        executeQuery(conn, insertTpStatement, process.getId(),
                 process.getState(),
                 process.getStateCount(),
                 process.getStateTimestamp(),
@@ -265,7 +254,7 @@ public class SqlTransferProcessStore extends AbstractSqlStore implements Transfe
 
     private void insertDataRequest(String processId, DataRequest dr, Connection conn) {
         var insertDrStmt = statements.getInsertDataRequestTemplate();
-        SqlQueryExecutor.executeQuery(conn, insertDrStmt,
+        executeQuery(conn, insertDrStmt,
                 dr.getId(),
                 dr.getProcessId(),
                 dr.getConnectorAddress(),

@@ -63,13 +63,7 @@ public class SqlContractNegotiationStore extends AbstractSqlStore implements Con
 
     @Override
     public @Nullable ContractNegotiation find(String negotiationId) {
-        return transactionContext.execute(() -> {
-            try (var connection = getConnection()) {
-                return findInternal(connection, negotiationId);
-            } catch (SQLException e) {
-                throw new EdcPersistenceException(e);
-            }
-        });
+        return transactionContext.execute(() -> findInternal(getConnection(), negotiationId));
     }
 
     @Override
@@ -87,11 +81,7 @@ public class SqlContractNegotiationStore extends AbstractSqlStore implements Con
     public @Nullable ContractAgreement findContractAgreement(String contractId) {
         return transactionContext.execute(() -> {
             var stmt = statements.getFindContractAgreementTemplate();
-            try {
-                return executeQuerySingle(getConnection(), true, this::mapContractAgreement, stmt, contractId);
-            } catch (SQLException e) {
-                throw new EdcPersistenceException(e);
-            }
+            return executeQuerySingle(transactionContext, getConnection(), this::mapContractAgreement, stmt, contractId);
         });
     }
 
@@ -99,16 +89,13 @@ public class SqlContractNegotiationStore extends AbstractSqlStore implements Con
     public void save(ContractNegotiation negotiation) {
         var id = negotiation.getId();
         transactionContext.execute(() -> {
-            try (var connection = getConnection()) {
-                var existing = findInternal(connection, id);
-                if (existing == null) {
-                    insert(connection, negotiation);
-                } else {
-                    leaseContext.withConnection(connection).breakLease(id);
-                    update(connection, id, negotiation);
-                }
-            } catch (SQLException e) {
-                throw new EdcPersistenceException(e);
+            var connection = getConnection();
+            var existing = findInternal(connection, id);
+            if (existing == null) {
+                insert(connection, negotiation);
+            } else {
+                leaseContext.withConnection(connection).breakLease(id);
+                update(connection, id, negotiation);
             }
         });
 
@@ -146,24 +133,16 @@ public class SqlContractNegotiationStore extends AbstractSqlStore implements Con
     @Override
     public @NotNull Stream<ContractNegotiation> queryNegotiations(QuerySpec querySpec) {
         return transactionContext.execute(() -> {
-            try {
-                var statement = statements.createNegotiationsQuery(querySpec);
-                return executeQuery(getConnection(), true, this::mapContractNegotiation, statement.getQueryAsString(), statement.getParameters());
-            } catch (SQLException e) {
-                throw new EdcPersistenceException(e);
-            }
+            var statement = statements.createNegotiationsQuery(querySpec);
+            return executeQuery(transactionContext, getConnection(), this::mapContractNegotiation, statement.getQueryAsString(), statement.getParameters());
         });
     }
 
     @Override
     public @NotNull Stream<ContractAgreement> queryAgreements(QuerySpec querySpec) {
         return transactionContext.execute(() -> {
-            try {
-                var statement = statements.createAgreementsQuery(querySpec);
-                return executeQuery(getConnection(), true, this::mapContractAgreement, statement.getQueryAsString(), statement.getParameters());
-            } catch (SQLException e) {
-                throw new EdcPersistenceException(e);
-            }
+            var statement = statements.createAgreementsQuery(querySpec);
+            return executeQuery(transactionContext, getConnection(), this::mapContractAgreement, statement.getQueryAsString(), statement.getParameters());
         });
     }
 
@@ -173,7 +152,7 @@ public class SqlContractNegotiationStore extends AbstractSqlStore implements Con
             var stmt = statements.getNextForStateTemplate();
             try (
                     var connection = getConnection();
-                    var stream = executeQuery(connection, true, this::mapContractNegotiation, stmt, state, clock.millis(), max)
+                    var stream = executeQuery(transactionContext, connection, this::mapContractNegotiation, stmt, state, clock.millis(), max)
             ) {
                 var negotiations = stream.collect(Collectors.toList());
                 negotiations.forEach(cn -> leaseContext.withConnection(connection).acquireLease(cn.getId()));
@@ -186,7 +165,7 @@ public class SqlContractNegotiationStore extends AbstractSqlStore implements Con
 
     private @Nullable ContractNegotiation findInternal(Connection connection, String id) {
         var sql = statements.getFindTemplate();
-        return executeQuerySingle(connection, false, this::mapContractNegotiation, sql, id);
+        return executeQuerySingle(transactionContext, connection, this::mapContractNegotiation, sql, id);
     }
 
     private void update(Connection connection, String negotiationId, ContractNegotiation updatedValues) {
@@ -271,13 +250,12 @@ public class SqlContractNegotiationStore extends AbstractSqlStore implements Con
                 throw new EdcPersistenceException(e);
             }
         });
-
     }
 
     @Nullable
     private <T> T single(List<T> list) {
         if (list.size() > 1) {
-            throw new IllegalStateException(getMultiplicityError(1, list.size()));
+            throw new IllegalStateException(format("Expected to find %d items, but found %d", 1, list.size()));
         }
 
         return list.isEmpty() ? null : list.get(0);
@@ -296,10 +274,6 @@ public class SqlContractNegotiationStore extends AbstractSqlStore implements Con
                 .contractSigningDate(resultSet.getLong(statements.getSigningDateColumn()))
                 //todo
                 .build();
-    }
-
-    private String getMultiplicityError(int expectedSize, int actualSize) {
-        return format("Expected to find %d items, but found %d", expectedSize, actualSize);
     }
 
     private ContractNegotiation mapContractNegotiation(ResultSet resultSet) throws SQLException {

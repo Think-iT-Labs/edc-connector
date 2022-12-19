@@ -17,8 +17,6 @@ package org.eclipse.edc.sql.lease;
 import org.eclipse.edc.junit.annotations.PostgresqlDbIntegrationTest;
 import org.eclipse.edc.sql.ResultSetMapper;
 import org.eclipse.edc.sql.testfixtures.PostgresqlLocalInstance;
-import org.eclipse.edc.transaction.spi.NoopTransactionContext;
-import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +39,6 @@ import static org.mockito.Mockito.when;
 
 @PostgresqlDbIntegrationTest
 class PostgresLeaseContextTest extends LeaseContextTest {
-    private final TransactionContext transactionContext = new NoopTransactionContext();
     private final TestEntityLeaseStatements dialect = new TestEntityLeaseStatements();
     private final DataSource dataSource = mock(DataSource.class);
     private final Connection connection = spy(PostgresqlLocalInstance.getTestConnection());
@@ -106,7 +103,7 @@ class PostgresLeaseContextTest extends LeaseContextTest {
         return transactionContext.execute(() -> {
             var stmt = "SELECT * FROM " + dialect.getEntityTableName() + " WHERE id=?";
 
-            try (var stream = executeQuery(connection, false, map(), stmt, id)) {
+            try (var stream = executeQuery(transactionContext, connection, map(), stmt, id)) {
                 return stream.findFirst().orElse(null);
             }
         });

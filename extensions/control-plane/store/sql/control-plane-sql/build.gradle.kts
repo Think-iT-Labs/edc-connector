@@ -20,6 +20,7 @@ plugins {
 dependencies {
     implementation(project(":extensions:common:sql:sql-core"))
     implementation(project(":extensions:common:sql:sql-lease"))
+    implementation(project(":extensions:common:transaction:transaction-local"))
     implementation(project(":extensions:control-plane:store:sql:asset-index-sql"))
     implementation(project(":extensions:control-plane:store:sql:contract-definition-store-sql"))
     implementation(project(":extensions:control-plane:store:sql:contract-negotiation-store-sql"))

@@ -54,24 +54,19 @@ public class SqlPolicyDefinitionStore extends AbstractSqlStore implements Policy
     @Override
     public PolicyDefinition findById(String id) {
         var query = QuerySpec.Builder.newInstance().filter("id=" + id).build();
-        try {
+        return transactionContext.execute(() -> {
             var queryStatement = statements.createQuery(query);
-            return executeQuerySingle(getConnection(), true, this::mapResultSet, queryStatement.getQueryAsString(), queryStatement.getParameters());
-        } catch (SQLException exception) {
-            throw new EdcPersistenceException(exception);
-        }
+            return executeQuerySingle(transactionContext, getConnection(), this::mapResultSet, queryStatement.getQueryAsString(), queryStatement.getParameters());
+        });
     }
 
     @Override
     public Stream<PolicyDefinition> findAll(QuerySpec querySpec) {
         Objects.requireNonNull(querySpec);
-
-        try {
+        return transactionContext.execute(() -> {
             var queryStatement = statements.createQuery(querySpec);
-            return executeQuery(getConnection(), true, this::mapResultSet, queryStatement.getQueryAsString(), queryStatement.getParameters());
-        } catch (SQLException exception) {
-            throw new EdcPersistenceException(exception);
-        }
+            return executeQuery(transactionContext, getConnection(), this::mapResultSet, queryStatement.getQueryAsString(), queryStatement.getParameters());
+        });
     }
 
     @Override
