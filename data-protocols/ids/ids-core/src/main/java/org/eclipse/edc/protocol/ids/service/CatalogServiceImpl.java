@@ -21,6 +21,7 @@ import org.eclipse.edc.connector.contract.spi.offer.ContractOfferQuery;
 import org.eclipse.edc.connector.contract.spi.offer.ContractOfferResolver;
 import org.eclipse.edc.protocol.ids.spi.service.CatalogService;
 import org.eclipse.edc.protocol.ids.spi.types.container.DescriptionRequest;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -30,12 +31,14 @@ import static java.util.stream.Collectors.toList;
 public class CatalogServiceImpl implements CatalogService {
     private final String dataCatalogId;
     private final ContractOfferResolver contractOfferResolver;
+    private final TransactionContext transactionContext;
 
     public CatalogServiceImpl(
             @NotNull String dataCatalogId,
-            @NotNull ContractOfferResolver contractOfferResolver) {
+            @NotNull ContractOfferResolver contractOfferResolver, TransactionContext transactionContext) {
         this.dataCatalogId = Objects.requireNonNull(dataCatalogId);
         this.contractOfferResolver = Objects.requireNonNull(contractOfferResolver);
+        this.transactionContext = transactionContext;
     }
 
     @Override
@@ -50,11 +53,13 @@ public class CatalogServiceImpl implements CatalogService {
                 .consumer(descriptionRequest.getConsumer())
                 .build();
 
-        try (var offers = contractOfferResolver.queryContractOffers(query)) {
-            return Catalog.Builder.newInstance()
-                    .id(dataCatalogId)
-                    .contractOffers(offers.collect(toList()))
-                    .build();
-        }
+        return transactionContext.execute(() -> {
+            try (var offers = contractOfferResolver.queryContractOffers(query)) {
+                return Catalog.Builder.newInstance()
+                        .id(dataCatalogId)
+                        .contractOffers(offers.collect(toList()))
+                        .build();
+            }
+        });
     }
 }

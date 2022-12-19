@@ -45,6 +45,7 @@ import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.eclipse.edc.web.spi.WebService;
 
 import java.util.LinkedList;
@@ -106,6 +107,9 @@ public final class IdsMultipartApiServiceExtension implements ServiceExtension {
     @Inject
     private TransferProcessService transferProcessService;
 
+    @Inject
+    private TransactionContext transactionContext;
+
     @Override
     public String name() {
         return NAME;
@@ -123,7 +127,7 @@ public final class IdsMultipartApiServiceExtension implements ServiceExtension {
 
         // create request handlers
         var handlers = new LinkedList<Handler>();
-        handlers.add(new DescriptionRequestHandler(monitor, connectorId, transformerRegistry, assetIndex, dataCatalogService, contractOfferResolver, connectorService, objectMapper));
+        handlers.add(new DescriptionRequestHandler(monitor, connectorId, transformerRegistry, assetIndex, dataCatalogService, contractOfferResolver, connectorService, objectMapper, transactionContext));
         handlers.add(new ArtifactRequestHandler(monitor, connectorId, objectMapper, contractNegotiationStore, vault, transferProcessService));
         handlers.add(new EndpointDataReferenceHandler(monitor, connectorId, endpointDataReferenceReceiverRegistry, endpointDataReferenceTransformerRegistry, context.getTypeManager()));
         handlers.add(new ContractRequestHandler(monitor, connectorId, objectMapper, providerNegotiationManager, transformerRegistry, assetIndex));

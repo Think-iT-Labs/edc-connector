@@ -38,6 +38,7 @@ import org.eclipse.edc.spi.asset.AssetIndex;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.query.Criterion;
 import org.eclipse.edc.spi.types.domain.asset.Asset;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -64,6 +65,7 @@ public class DescriptionRequestHandler implements Handler {
     private final ContractOfferResolver contractOfferResolver;
     private final ConnectorService connectorService;
     private final ObjectMapper objectMapper;
+    private final TransactionContext transactionContext;
 
     private final Map<IdsType, DescriptionHandler<?>> descriptionHandlers = Map.of(
             ARTIFACT, new ArtifactDescriptionHandler(),
@@ -81,7 +83,7 @@ public class DescriptionRequestHandler implements Handler {
             @NotNull CatalogService catalogService,
             @NotNull ContractOfferResolver contractOfferResolver,
             @NotNull ConnectorService connectorService,
-            @NotNull ObjectMapper objectMapper) {
+            @NotNull ObjectMapper objectMapper, TransactionContext transactionContext) {
         this.monitor = monitor;
         this.connectorId = connectorId;
         this.transformerRegistry = transformerRegistry;
@@ -90,6 +92,7 @@ public class DescriptionRequestHandler implements Handler {
         this.contractOfferResolver = contractOfferResolver;
         this.connectorService = connectorService;
         this.objectMapper = objectMapper;
+        this.transactionContext = transactionContext;
     }
 
     @Override
@@ -119,7 +122,7 @@ public class DescriptionRequestHandler implements Handler {
                 .querySpec(getQuerySpec(message, objectMapper))
                 .build();
 
-        var object = descriptionHandler.getObject(descriptionRequest);
+        var object = transactionContext.execute(() -> descriptionHandler.getObject(descriptionRequest));
         var result = transformerRegistry.transform(object, descriptionHandler.getType());
         if (result.failed()) {
             monitor.warning(String.format("Could not retrieve requested element with ID %s:%s: [%s]",

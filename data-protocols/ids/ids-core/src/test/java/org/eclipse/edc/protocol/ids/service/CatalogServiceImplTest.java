@@ -22,6 +22,8 @@ import org.eclipse.edc.protocol.ids.spi.types.container.DescriptionRequest;
 import org.eclipse.edc.spi.iam.ClaimToken;
 import org.eclipse.edc.spi.query.QuerySpec;
 import org.eclipse.edc.spi.types.domain.asset.Asset;
+import org.eclipse.edc.transaction.spi.NoopTransactionContext;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +44,7 @@ class CatalogServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        dataCatalogService = new CatalogServiceImpl(CATALOG_ID, contractOfferResolver);
+        dataCatalogService = new CatalogServiceImpl(CATALOG_ID, contractOfferResolver, new NoopTransactionContext());
     }
 
     @Test

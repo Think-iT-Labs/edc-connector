@@ -37,6 +37,7 @@ import org.eclipse.edc.spi.iam.IdentityService;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +64,9 @@ public class IdsCoreServiceExtension implements ServiceExtension {
 
     @Inject
     private IdentityService identityService;
+
+    @Inject
+    private TransactionContext transactionContext;
 
     @Override
     public String name() {
@@ -97,7 +101,7 @@ public class IdsCoreServiceExtension implements ServiceExtension {
 
         context.registerService(IdsTransformerRegistry.class, new IdsTransformerRegistryImpl());
 
-        var dataCatalogService = new CatalogServiceImpl(dataCatalogId, contractOfferResolver);
+        var dataCatalogService = new CatalogServiceImpl(dataCatalogId, contractOfferResolver, transactionContext);
         context.registerService(CatalogService.class, dataCatalogService);
 
         var connectorService = new ConnectorServiceImpl(connectorServiceSettings, dataCatalogService);

@@ -116,16 +116,16 @@ public final class SqlQueryExecutor {
     private static void close(PreparedStatement statement) {
         try {
             statement.close();
-        } catch (SQLException ignored) {
-
+        } catch (SQLException exception) {
+            throw new EdcPersistenceException("Error while closing PreparedStatement", exception);
         }
     }
 
     private static void close(ResultSet resultSet) {
         try {
             resultSet.close();
-        } catch (SQLException ignored) {
-
+        } catch (SQLException exception) {
+            throw new EdcPersistenceException("Error while closing ResultSet", exception);
         }
     }
 

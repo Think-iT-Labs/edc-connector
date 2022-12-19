@@ -100,7 +100,7 @@ class DescriptionRequestHandlerTest {
         connectorService = mock(ConnectorService.class);
 
         handler = new DescriptionRequestHandler(mock(Monitor.class), connectorId, transformerRegistry,
-                assetIndex, catalogService, contractOfferResolver, connectorService, new ObjectMapper());
+                assetIndex, catalogService, contractOfferResolver, connectorService, new ObjectMapper(), transactionContext);
     }
 
     @Test
