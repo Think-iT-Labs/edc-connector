@@ -39,6 +39,7 @@ import org.eclipse.edc.spi.query.QuerySpec;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.asset.Asset;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.eclipse.edc.web.spi.exception.InvalidRequestException;
 import org.eclipse.edc.web.spi.exception.ObjectNotFoundException;
 
@@ -59,14 +60,15 @@ public class AssetApiController implements AssetApi {
     private final Monitor monitor;
     private final AssetService service;
     private final DtoTransformerRegistry transformerRegistry;
-
+    private final TransactionContext transactionContext;
     private final DataAddressResolver dataAddressResolver;
 
-    public AssetApiController(Monitor monitor, AssetService service, DataAddressResolver dataAddressResolver, DtoTransformerRegistry transformerRegistry) {
+    public AssetApiController(Monitor monitor, AssetService service, DataAddressResolver dataAddressResolver, DtoTransformerRegistry transformerRegistry, TransactionContext transactionContext) {
         this.monitor = monitor;
         this.service = service;
         this.dataAddressResolver = dataAddressResolver;
         this.transformerRegistry = transformerRegistry;
+        this.transactionContext = transactionContext;
     }
 
     @POST
@@ -83,14 +85,15 @@ public class AssetApiController implements AssetApi {
         var dataAddress = dataAddressResult.getContent();
         var asset = assetResult.getContent();
 
-        var resultContent = service.create(asset, dataAddress).orElseThrow(exceptionMapper(Asset.class, asset.getId()));
+        return transactionContext.execute(() -> {
+            var resultContent = service.create(asset, dataAddress).orElseThrow(exceptionMapper(Asset.class, asset.getId()));
 
-        monitor.debug(format("Asset created %s", assetEntryDto.getAsset()));
-        return IdResponseDto.Builder.newInstance()
-                .id(resultContent.getId())
-                .createdAt(resultContent.getCreatedAt())
-                .build();
-
+            monitor.debug(format("Asset created %s", assetEntryDto.getAsset()));
+            return IdResponseDto.Builder.newInstance()
+                    .id(resultContent.getId())
+                    .createdAt(resultContent.getCreatedAt())
+                    .build();
+        });
     }
 
     @GET
@@ -112,12 +115,15 @@ public class AssetApiController implements AssetApi {
     @Override
     public AssetResponseDto getAsset(@PathParam("id") String id) {
         monitor.debug(format("Attempting to return Asset with id %s", id));
-        return Optional.of(id)
+
+        return transactionContext.execute(() -> Optional.of(id)
                 .map(it -> service.findById(id))
                 .map(it -> transformerRegistry.transform(it, AssetResponseDto.class))
                 .filter(Result::succeeded)
                 .map(Result::getContent)
-                .orElseThrow(() -> new ObjectNotFoundException(Asset.class, id));
+                .orElseThrow(() -> new ObjectNotFoundException(Asset.class, id))
+        );
+
     }
 
     @DELETE
@@ -125,7 +131,9 @@ public class AssetApiController implements AssetApi {
     @Override
     public void removeAsset(@PathParam("id") String id) {
         monitor.debug(format("Attempting to delete Asset with id %s", id));
-        service.delete(id).orElseThrow(exceptionMapper(Asset.class, id));
+        transactionContext.execute(() -> {
+            service.delete(id).orElseThrow(exceptionMapper(Asset.class, id));
+        });
         monitor.debug(format("Asset deleted %s", id));
     }
 
@@ -153,13 +161,13 @@ public class AssetApiController implements AssetApi {
 
         monitor.debug(format("get all Assets from %s", spec));
 
-        try (var assets = service.query(spec).orElseThrow(exceptionMapper(QuerySpec.class, null))) {
-            return assets
-                    .map(it -> transformerRegistry.transform(it, AssetResponseDto.class))
-                    .filter(Result::succeeded)
-                    .map(Result::getContent)
-                    .collect(toList());
-        }
+        return transactionContext.execute(() -> service.query(spec)
+                .orElseThrow(exceptionMapper(QuerySpec.class, null))
+                .map(it -> transformerRegistry.transform(it, AssetResponseDto.class))
+                .filter(Result::succeeded)
+                .map(Result::getContent)
+                .collect(toList())
+        );
     }
 
 }

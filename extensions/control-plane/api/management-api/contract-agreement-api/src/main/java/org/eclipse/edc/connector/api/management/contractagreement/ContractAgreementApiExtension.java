@@ -23,6 +23,7 @@ import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.eclipse.edc.web.spi.WebService;
 
 @Extension(value = ContractAgreementApiExtension.NAME)
@@ -30,16 +31,19 @@ public class ContractAgreementApiExtension implements ServiceExtension {
 
     public static final String NAME = "Management API: Contract Agreement";
     @Inject
-    WebService webService;
+    private WebService webService;
 
     @Inject
-    ManagementApiConfiguration config;
+    private ManagementApiConfiguration config;
 
     @Inject
-    DtoTransformerRegistry transformerRegistry;
+    private DtoTransformerRegistry transformerRegistry;
 
     @Inject
-    ContractAgreementService service;
+    private ContractAgreementService service;
+
+    @Inject
+    private TransactionContext transactionContext;
 
     @Override
     public String name() {
@@ -51,7 +55,7 @@ public class ContractAgreementApiExtension implements ServiceExtension {
         transformerRegistry.register(new ContractAgreementToContractAgreementDtoTransformer());
         var monitor = context.getMonitor();
 
-        var controller = new ContractAgreementApiController(monitor, service, transformerRegistry);
+        var controller = new ContractAgreementApiController(monitor, service, transformerRegistry, transactionContext);
         webService.registerResource(config.getContextAlias(), controller);
     }
 }

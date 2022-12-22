@@ -32,6 +32,7 @@ import org.eclipse.edc.spi.query.QuerySpec;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.asset.Asset;
+import org.eclipse.edc.transaction.spi.NoopTransactionContext;
 import org.eclipse.edc.web.spi.exception.InvalidRequestException;
 import org.eclipse.edc.web.spi.exception.ObjectConflictException;
 import org.eclipse.edc.web.spi.exception.ObjectNotFoundException;
@@ -62,7 +63,7 @@ public class AssetApiControllerTest {
     @BeforeEach
     void setUp() {
         var monitor = mock(Monitor.class);
-        controller = new AssetApiController(monitor, service, dataAddressResolver, transformerRegistry);
+        controller = new AssetApiController(monitor, service, dataAddressResolver, transformerRegistry,  new NoopTransactionContext());
     }
 
     @Test

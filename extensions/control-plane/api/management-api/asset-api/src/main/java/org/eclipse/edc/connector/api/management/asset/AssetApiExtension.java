@@ -28,6 +28,7 @@ import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.spi.asset.DataAddressResolver;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.eclipse.edc.web.spi.WebService;
 
 @Extension(value = AssetApiExtension.NAME)
@@ -50,6 +51,9 @@ public class AssetApiExtension implements ServiceExtension {
     @Inject
     private DataAddressResolver dataAddressResolver;
 
+    @Inject
+    private TransactionContext transactionContext;
+
     @Override
     public String name() {
         return NAME;
@@ -64,7 +68,7 @@ public class AssetApiExtension implements ServiceExtension {
         transformerRegistry.register(new DataAddressDtoToDataAddressTransformer());
         transformerRegistry.register(new DataAddressToDataAddressDtoTransformer());
 
-        webService.registerResource(config.getContextAlias(), new AssetApiController(monitor, assetService, dataAddressResolver, transformerRegistry));
+        webService.registerResource(config.getContextAlias(), new AssetApiController(monitor, assetService, dataAddressResolver, transformerRegistry, transactionContext));
     }
 
 }

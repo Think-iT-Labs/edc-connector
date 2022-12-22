@@ -26,6 +26,7 @@ import org.eclipse.edc.service.spi.result.ServiceResult;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.query.QuerySpec;
 import org.eclipse.edc.spi.result.Result;
+import org.eclipse.edc.transaction.spi.NoopTransactionContext;
 import org.eclipse.edc.web.spi.exception.InvalidRequestException;
 import org.eclipse.edc.web.spi.exception.ObjectNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +56,7 @@ class ContractAgreementApiControllerTest {
     @BeforeEach
     void setup() {
         var monitor = mock(Monitor.class);
-        controller = new ContractAgreementApiController(monitor, service, transformerRegistry);
+        controller = new ContractAgreementApiController(monitor, service, transformerRegistry, new NoopTransactionContext());
     }
 
     @Test

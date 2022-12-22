@@ -32,6 +32,7 @@ import org.eclipse.edc.connector.spi.contractagreement.ContractAgreementService;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.query.QuerySpec;
 import org.eclipse.edc.spi.result.Result;
+import org.eclipse.edc.transaction.spi.TransactionContext;
 import org.eclipse.edc.web.spi.exception.InvalidRequestException;
 import org.eclipse.edc.web.spi.exception.ObjectNotFoundException;
 import org.jetbrains.annotations.NotNull;
@@ -50,11 +51,14 @@ public class ContractAgreementApiController implements ContractAgreementApi {
     private final Monitor monitor;
     private final ContractAgreementService service;
     private final DtoTransformerRegistry transformerRegistry;
+    private final TransactionContext transactionContext;
 
-    public ContractAgreementApiController(Monitor monitor, ContractAgreementService service, DtoTransformerRegistry transformerRegistry) {
+    public ContractAgreementApiController(Monitor monitor, ContractAgreementService service,
+                                          DtoTransformerRegistry transformerRegistry, TransactionContext transactionContext) {
         this.monitor = monitor;
         this.service = service;
         this.transformerRegistry = transformerRegistry;
+        this.transactionContext = transactionContext;
     }
 
     @GET
@@ -77,12 +81,12 @@ public class ContractAgreementApiController implements ContractAgreementApi {
     public ContractAgreementDto getContractAgreement(@PathParam("id") String id) {
         monitor.debug(format("get contract agreement with ID %s", id));
 
-        return Optional.of(id)
+        return transactionContext.execute(() -> Optional.of(id)
                 .map(service::findById)
                 .map(it -> transformerRegistry.transform(it, ContractAgreementDto.class))
                 .filter(Result::succeeded)
                 .map(Result::getContent)
-                .orElseThrow(() -> new ObjectNotFoundException(ContractAgreement.class, id));
+                .orElseThrow(() -> new ObjectNotFoundException(ContractAgreement.class, id)));
     }
 
     @NotNull
@@ -96,13 +100,12 @@ public class ContractAgreementApiController implements ContractAgreementApi {
 
         monitor.debug(format("get all contract agreements from %s", spec));
 
-        try (var stream = service.query(spec).orElseThrow(exceptionMapper(ContractDefinition.class, null))) {
-            return stream
-                    .map(it -> transformerRegistry.transform(it, ContractAgreementDto.class))
-                    .filter(Result::succeeded)
-                    .map(Result::getContent)
-                    .collect(Collectors.toList());
-        }
+        return transactionContext.execute(() -> service.query(spec)
+                .orElseThrow(exceptionMapper(ContractDefinition.class, null))
+                .map(it -> transformerRegistry.transform(it, ContractAgreementDto.class))
+                .filter(Result::succeeded)
+                .map(Result::getContent)
+                .collect(Collectors.toList()));
     }
 
 

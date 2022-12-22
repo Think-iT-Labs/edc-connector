@@ -48,6 +48,7 @@ import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.query.QuerySpec;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.types.domain.asset.Asset;
+import org.eclipse.edc.transaction.spi.NoopTransactionContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -100,7 +101,7 @@ class DescriptionRequestHandlerTest {
         connectorService = mock(ConnectorService.class);
 
         handler = new DescriptionRequestHandler(mock(Monitor.class), connectorId, transformerRegistry,
-                assetIndex, catalogService, contractOfferResolver, connectorService, new ObjectMapper(), transactionContext);
+                assetIndex, catalogService, contractOfferResolver, connectorService, new ObjectMapper(), new NoopTransactionContext());
     }
 
     @Test
