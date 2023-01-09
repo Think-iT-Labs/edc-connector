@@ -56,7 +56,7 @@ jobs:
       - name: Run unit tests
         uses: ./.github/actions/run-tests
         with:
-          command: ./gradlew test jacocoTestReport
+          command: ./gradlew test -Dorg.gradle.parallel=true jacocoTestReport
 
   Helm-Chart:
     runs-on: ubuntu-latest
