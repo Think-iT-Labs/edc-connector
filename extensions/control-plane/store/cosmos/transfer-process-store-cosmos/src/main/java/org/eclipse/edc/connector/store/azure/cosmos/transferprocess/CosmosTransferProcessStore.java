@@ -130,7 +130,7 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
             failsafeExecutor.run(action);
             leaseContext.breakLease(process.getId());
         } catch (BadRequestException ex) {
-            throw new EdcException(ex);
+            throw new IllegalStateException(ex);
         }
     }
 
