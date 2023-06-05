@@ -15,6 +15,7 @@
 package org.eclipse.edc.connector.api.management.asset;
 
 import jakarta.json.JsonObject;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -66,10 +67,9 @@ public class AssetApiController implements AssetApi {
         this.monitor = monitor;
     }
 
-    @POST
+    //    @POST
     @Override
     public JsonObject createAsset(JsonObject assetEntryDto) {
-
         var assetEntry = jsonLdService.expand(assetEntryDto)
                 .compose(expanded -> transformerRegistry.transform(expanded, AssetEntryNewDto.class))
                 .orElseThrow(InvalidRequestException::new);
@@ -86,8 +86,24 @@ public class AssetApiController implements AssetApi {
                 .orElseThrow(f -> new EdcException(f.getFailureDetail()));
     }
 
+
     @POST
-    @Path("/request")
+    //    @Override
+    public JsonObject createAsset(@Valid AssetEntryNewDto assetEntry) {
+        var dto = service.create(assetEntry.getAsset(), assetEntry.getDataAddress())
+                .map(a -> IdResponseDto.Builder.newInstance()
+                        .id(a.getId())
+                        .createdAt(a.getCreatedAt())
+                        .build())
+                .orElseThrow(exceptionMapper(Asset.class, assetEntry.getAsset().getId()));
+
+        return transformerRegistry.transform(dto, JsonObject.class)
+                .compose(jsonLdService::compact)
+                .orElseThrow(f -> new EdcException(f.getFailureDetail()));
+    }
+
+    //    @POST
+    //    @Path("/request")
     @Override
     public List<JsonObject> requestAssets(JsonObject querySpecDto) {
 
@@ -99,6 +115,19 @@ public class AssetApiController implements AssetApi {
         var querySpec = ofNullable(querySpecDto)
                 .map(jsonLdService::expand)
                 .map(expandedMapper)
+                .orElse(Result.success(QuerySpec.Builder.newInstance().build()))
+                .orElseThrow(InvalidRequestException::new);
+
+        return queryAssets(querySpec);
+    }
+
+    @POST
+    @Path("/request")
+    //    @Override
+    public List<JsonObject> requestAssets(QuerySpecDto querySpecDto) {
+
+        var querySpec = ofNullable(querySpecDto)
+                .map(dto -> transformerRegistry.transform(dto, QuerySpec.class))
                 .orElse(Result.success(QuerySpec.Builder.newInstance().build()))
                 .orElseThrow(InvalidRequestException::new);
 
