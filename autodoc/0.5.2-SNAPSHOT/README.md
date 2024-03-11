@@ -35,6 +35,66 @@ _Categories: None_
 _None_
 
 ### Extensions
+#### Class: `org.eclipse.edc.connector.core.SecurityDefaultServicesExtension`
+**Name:** "Security Default Services Extension"
+
+**Overview:** No overview provided.
+
+
+##### Configuration: _None_
+
+##### Provided services:
+- `org.eclipse.edc.spi.security.PrivateKeyResolver`
+- `org.eclipse.edc.spi.security.CertificateResolver`
+- `org.eclipse.edc.spi.security.KeyParserRegistry`
+
+##### Referenced (injected) services:
+- `org.eclipse.edc.spi.security.Vault` (required)
+- `org.eclipse.edc.spi.types.TypeManager` (required)
+
+#### Class: `org.eclipse.edc.connector.core.LocalPublicKeyDefaultExtension`
+**Name:** "Security Default Services Extension"
+
+**Overview:** No overview provided.
+
+
+##### Configuration: 
+
+| Key                                  | Required | Type     | Default | Pattern | Min | Max | Description                                                                                                                                      |
+| ------------------------------------ | -------- | -------- | ------- | ------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `edc.iam.publickeys.<pkAlias>.id`    | `*`      | `string` | ``      |         |     |     | ID of the public key.                                                                                                                            |
+| `edc.iam.publickeys.<pkAlias>.value` |          | `string` | ``      |         |     |     | Value of the public key. Multiple formats are supported, depending on the KeyParsers registered in the runtime                                   |
+| `edc.iam.publickeys.<pkAlias>.path`  |          | `string` | ``      |         |     |     | Path to a file that holds the public key, e.g. a PEM file. Multiple formats are supported, depending on the KeyParsers registered in the runtime |
+
+##### Provided services:
+- `org.eclipse.edc.spi.iam.LocalPublicKeyService`
+
+##### Referenced (injected) services:
+- `org.eclipse.edc.spi.security.KeyParserRegistry` (required)
+- `org.eclipse.edc.spi.security.Vault` (required)
+
+#### Class: `org.eclipse.edc.connector.core.CoreDefaultServicesExtension`
+**Name:** "CoreDefaultServicesExtension"
+
+**Overview:** No overview provided.
+
+
+##### Configuration: _None_
+
+##### Provided services:
+- `org.eclipse.edc.transaction.spi.TransactionContext`
+- `org.eclipse.edc.transaction.datasource.spi.DataSourceRegistry`
+- `org.eclipse.edc.spi.system.ExecutorInstrumentation`
+- `org.eclipse.edc.connector.core.event.EventExecutorServiceContainer`
+- `org.eclipse.edc.spi.security.Vault`
+- `org.eclipse.edc.spi.http.EdcHttpClient`
+- `okhttp3.OkHttpClient`
+- `dev.failsafe.RetryPolicy<T>`
+- `org.eclipse.edc.spi.agent.ParticipantIdMapper`
+
+##### Referenced (injected) services:
+- `okhttp3.EventListener` (optional)
+
 #### Class: `org.eclipse.edc.connector.core.CoreServicesExtension`
 **Name:** "Core Services"
 
@@ -71,66 +131,6 @@ _None_
 - `org.eclipse.edc.spi.security.Vault` (required)
 - `org.eclipse.edc.connector.core.event.EventExecutorServiceContainer` (required)
 - `org.eclipse.edc.spi.types.TypeManager` (required)
-
-#### Class: `org.eclipse.edc.connector.core.LocalPublicKeyDefaultExtension`
-**Name:** "Security Default Services Extension"
-
-**Overview:** No overview provided.
-
-
-##### Configuration: 
-
-| Key                                  | Required | Type     | Default | Pattern | Min | Max | Description                                                                                                                                      |
-| ------------------------------------ | -------- | -------- | ------- | ------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `edc.iam.publickeys.<pkAlias>.id`    | `*`      | `string` | ``      |         |     |     | ID of the public key.                                                                                                                            |
-| `edc.iam.publickeys.<pkAlias>.value` |          | `string` | ``      |         |     |     | Value of the public key. Multiple formats are supported, depending on the KeyParsers registered in the runtime                                   |
-| `edc.iam.publickeys.<pkAlias>.path`  |          | `string` | ``      |         |     |     | Path to a file that holds the public key, e.g. a PEM file. Multiple formats are supported, depending on the KeyParsers registered in the runtime |
-
-##### Provided services:
-- `org.eclipse.edc.spi.iam.LocalPublicKeyService`
-
-##### Referenced (injected) services:
-- `org.eclipse.edc.spi.security.KeyParserRegistry` (required)
-- `org.eclipse.edc.spi.security.Vault` (required)
-
-#### Class: `org.eclipse.edc.connector.core.SecurityDefaultServicesExtension`
-**Name:** "Security Default Services Extension"
-
-**Overview:** No overview provided.
-
-
-##### Configuration: _None_
-
-##### Provided services:
-- `org.eclipse.edc.spi.security.PrivateKeyResolver`
-- `org.eclipse.edc.spi.security.CertificateResolver`
-- `org.eclipse.edc.spi.security.KeyParserRegistry`
-
-##### Referenced (injected) services:
-- `org.eclipse.edc.spi.security.Vault` (required)
-- `org.eclipse.edc.spi.types.TypeManager` (required)
-
-#### Class: `org.eclipse.edc.connector.core.CoreDefaultServicesExtension`
-**Name:** "CoreDefaultServicesExtension"
-
-**Overview:** No overview provided.
-
-
-##### Configuration: _None_
-
-##### Provided services:
-- `org.eclipse.edc.transaction.spi.TransactionContext`
-- `org.eclipse.edc.transaction.datasource.spi.DataSourceRegistry`
-- `org.eclipse.edc.spi.system.ExecutorInstrumentation`
-- `org.eclipse.edc.connector.core.event.EventExecutorServiceContainer`
-- `org.eclipse.edc.spi.security.Vault`
-- `org.eclipse.edc.spi.http.EdcHttpClient`
-- `okhttp3.OkHttpClient`
-- `dev.failsafe.RetryPolicy<T>`
-- `org.eclipse.edc.spi.agent.ParticipantIdMapper`
-
-##### Referenced (injected) services:
-- `okhttp3.EventListener` (optional)
 
 Module `org.eclipse.edc:edr-store-core:0.5.2-SNAPSHOT`
 ------------------------------------------------------
@@ -258,8 +258,8 @@ _Categories: None_
 _None_
 
 ### Extensions
-#### Class: `org.eclipse.edc.connector.contract.ContractNegotiationCommandExtension`
-**Name:** "Contract Negotiation command handlers"
+#### Class: `org.eclipse.edc.connector.contract.ContractNegotiationDefaultServicesExtension`
+**Name:** "Contract Negotiation Default Services"
 
 **Overview:**  Contract Negotiation Default Services Extension
 
@@ -268,11 +268,17 @@ _None_
 ##### Configuration: _None_
 
 ##### Provided services:
-_None_
+- `org.eclipse.edc.connector.contract.spi.offer.ContractDefinitionResolver`
+- `org.eclipse.edc.connector.contract.spi.offer.ConsumerOfferResolver`
+- `org.eclipse.edc.connector.contract.spi.negotiation.observe.ContractNegotiationObservable`
+- `org.eclipse.edc.connector.policy.spi.store.PolicyArchive`
+- `org.eclipse.edc.connector.contract.spi.negotiation.ContractNegotiationPendingGuard`
 
 ##### Referenced (injected) services:
+- `org.eclipse.edc.connector.contract.spi.offer.store.ContractDefinitionStore` (required)
+- `org.eclipse.edc.policy.engine.spi.PolicyEngine` (required)
+- `org.eclipse.edc.connector.policy.spi.store.PolicyDefinitionStore` (required)
 - `org.eclipse.edc.connector.contract.spi.negotiation.store.ContractNegotiationStore` (required)
-- `org.eclipse.edc.spi.command.CommandHandlerRegistry` (required)
 
 #### Class: `org.eclipse.edc.connector.contract.ContractCoreExtension`
 **Name:** "Contract Core"
@@ -315,8 +321,8 @@ _None_
 - `org.eclipse.edc.connector.contract.spi.negotiation.ContractNegotiationPendingGuard` (required)
 - `org.eclipse.edc.spi.system.ExecutorInstrumentation` (required)
 
-#### Class: `org.eclipse.edc.connector.contract.ContractNegotiationDefaultServicesExtension`
-**Name:** "Contract Negotiation Default Services"
+#### Class: `org.eclipse.edc.connector.contract.ContractNegotiationCommandExtension`
+**Name:** "Contract Negotiation command handlers"
 
 **Overview:**  Contract Negotiation Default Services Extension
 
@@ -325,17 +331,11 @@ _None_
 ##### Configuration: _None_
 
 ##### Provided services:
-- `org.eclipse.edc.connector.contract.spi.offer.ContractDefinitionResolver`
-- `org.eclipse.edc.connector.contract.spi.offer.ConsumerOfferResolver`
-- `org.eclipse.edc.connector.contract.spi.negotiation.observe.ContractNegotiationObservable`
-- `org.eclipse.edc.connector.policy.spi.store.PolicyArchive`
-- `org.eclipse.edc.connector.contract.spi.negotiation.ContractNegotiationPendingGuard`
+_None_
 
 ##### Referenced (injected) services:
-- `org.eclipse.edc.connector.contract.spi.offer.store.ContractDefinitionStore` (required)
-- `org.eclipse.edc.policy.engine.spi.PolicyEngine` (required)
-- `org.eclipse.edc.connector.policy.spi.store.PolicyDefinitionStore` (required)
 - `org.eclipse.edc.connector.contract.spi.negotiation.store.ContractNegotiationStore` (required)
+- `org.eclipse.edc.spi.command.CommandHandlerRegistry` (required)
 
 Module `org.eclipse.edc:control-plane-aggregate-services:0.5.2-SNAPSHOT`
 ------------------------------------------------------------------------
@@ -477,6 +477,21 @@ _None_
 - `org.eclipse.edc.connector.transfer.spi.TransferProcessPendingGuard` (required)
 - `org.eclipse.edc.spi.system.ExecutorInstrumentation` (required)
 
+#### Class: `org.eclipse.edc.connector.transfer.TransferProcessCommandExtension`
+**Name:** "TransferProcessCommandExtension"
+
+**Overview:**  Provides core data transfer services to the system.
+
+
+
+##### Configuration: _None_
+
+##### Provided services:
+_None_
+
+##### Referenced (injected) services:
+- `org.eclipse.edc.connector.transfer.spi.store.TransferProcessStore` (required)
+
 #### Class: `org.eclipse.edc.connector.transfer.TransferProcessDefaultServicesExtension`
 **Name:** "Transfer Process Default Services"
 
@@ -495,21 +510,6 @@ _None_
 
 ##### Referenced (injected) services:
 - `org.eclipse.edc.policy.engine.spi.PolicyEngine` (required)
-
-#### Class: `org.eclipse.edc.connector.transfer.TransferProcessCommandExtension`
-**Name:** "TransferProcessCommandExtension"
-
-**Overview:**  Provides core data transfer services to the system.
-
-
-
-##### Configuration: _None_
-
-##### Provided services:
-_None_
-
-##### Referenced (injected) services:
-- `org.eclipse.edc.connector.transfer.spi.store.TransferProcessStore` (required)
 
 Module `org.eclipse.edc:data-plane-core:0.5.2-SNAPSHOT`
 -------------------------------------------------------
@@ -1570,20 +1570,6 @@ _Categories: None_
 _None_
 
 ### Extensions
-#### Class: `org.eclipse.edc.api.ApiCoreDefaultServicesExtension`
-**Name:** "ApiCoreDefaultServicesExtension"
-
-**Overview:** No overview provided.
-
-
-##### Configuration: _None_
-
-##### Provided services:
-- `org.eclipse.edc.api.auth.spi.AuthenticationService`
-
-##### Referenced (injected) services:
-_None_
-
 #### Class: `org.eclipse.edc.api.ApiCoreExtension`
 **Name:** "API Core"
 
@@ -1599,6 +1585,20 @@ _None_
 - `org.eclipse.edc.transform.spi.TypeTransformerRegistry` (required)
 - `org.eclipse.edc.validator.spi.JsonObjectValidatorRegistry` (required)
 - `org.eclipse.edc.spi.query.CriterionOperatorRegistry` (required)
+
+#### Class: `org.eclipse.edc.api.ApiCoreDefaultServicesExtension`
+**Name:** "ApiCoreDefaultServicesExtension"
+
+**Overview:** No overview provided.
+
+
+##### Configuration: _None_
+
+##### Provided services:
+- `org.eclipse.edc.api.auth.spi.AuthenticationService`
+
+##### Referenced (injected) services:
+_None_
 
 Module `org.eclipse.edc:api-observability:0.5.2-SNAPSHOT`
 ---------------------------------------------------------
@@ -2338,25 +2338,6 @@ _Categories: None_
 _None_
 
 ### Extensions
-#### Class: `org.eclipse.edc.connector.provision.http.HttpWebhookExtension`
-**Name:** "HttpWebhookExtension"
-
-**Overview:**  The HTTP Provisioner extension delegates to HTTP endpoints to perform provision operations.
-
-
-
-##### Configuration: _None_
-
-##### Provided services:
-- `org.eclipse.edc.connector.provision.http.HttpProvisionerWebhookUrl`
-
-##### Referenced (injected) services:
-- `org.eclipse.edc.web.spi.WebService` (required)
-- `org.eclipse.edc.api.auth.spi.AuthenticationService` (required)
-- `org.eclipse.edc.connector.spi.transferprocess.TransferProcessService` (required)
-- `org.eclipse.edc.spi.system.Hostname` (required)
-- `org.eclipse.edc.connector.api.management.configuration.ManagementApiConfiguration` (required)
-
 #### Class: `org.eclipse.edc.connector.provision.http.HttpProvisionerExtension`
 **Name:** "HTTP Provisioning"
 
@@ -2377,6 +2358,25 @@ _None_
 - `org.eclipse.edc.connector.provision.http.HttpProvisionerWebhookUrl` (required)
 - `org.eclipse.edc.spi.types.TypeManager` (required)
 - `org.eclipse.edc.validator.spi.DataAddressValidatorRegistry` (required)
+
+#### Class: `org.eclipse.edc.connector.provision.http.HttpWebhookExtension`
+**Name:** "HttpWebhookExtension"
+
+**Overview:**  The HTTP Provisioner extension delegates to HTTP endpoints to perform provision operations.
+
+
+
+##### Configuration: _None_
+
+##### Provided services:
+- `org.eclipse.edc.connector.provision.http.HttpProvisionerWebhookUrl`
+
+##### Referenced (injected) services:
+- `org.eclipse.edc.web.spi.WebService` (required)
+- `org.eclipse.edc.api.auth.spi.AuthenticationService` (required)
+- `org.eclipse.edc.connector.spi.transferprocess.TransferProcessService` (required)
+- `org.eclipse.edc.spi.system.Hostname` (required)
+- `org.eclipse.edc.connector.api.management.configuration.ManagementApiConfiguration` (required)
 
 Module `org.eclipse.edc:transfer-data-plane:0.5.2-SNAPSHOT`
 -----------------------------------------------------------
@@ -2589,22 +2589,6 @@ _Categories: None_
 _None_
 
 ### Extensions
-#### Class: `org.eclipse.edc.connector.dataplane.client.DataPlaneSignalingClientTransformExtension`
-**Name:** "Data Plane Signaling transform Client"
-
-**Overview:**  This extension registers all the transformers relevant for the data plane signaling protocol
-
-
-
-##### Configuration: _None_
-
-##### Provided services:
-_None_
-
-##### Referenced (injected) services:
-- `org.eclipse.edc.transform.spi.TypeTransformerRegistry` (required)
-- `org.eclipse.edc.spi.types.TypeManager` (required)
-
 #### Class: `org.eclipse.edc.connector.dataplane.client.DataPlaneSignalingClientExtension`
 **Name:** "Data Plane Signaling Client"
 
@@ -2622,6 +2606,22 @@ _None_
 - `org.eclipse.edc.spi.types.TypeManager` (required)
 - `org.eclipse.edc.transform.spi.TypeTransformerRegistry` (required)
 - `org.eclipse.edc.jsonld.spi.JsonLd` (required)
+
+#### Class: `org.eclipse.edc.connector.dataplane.client.DataPlaneSignalingClientTransformExtension`
+**Name:** "Data Plane Signaling transform Client"
+
+**Overview:**  This extension registers all the transformers relevant for the data plane signaling protocol
+
+
+
+##### Configuration: _None_
+
+##### Provided services:
+_None_
+
+##### Referenced (injected) services:
+- `org.eclipse.edc.transform.spi.TypeTransformerRegistry` (required)
+- `org.eclipse.edc.spi.types.TypeManager` (required)
 
 Module `org.eclipse.edc:identity-did-core:0.5.2-SNAPSHOT`
 ---------------------------------------------------------
@@ -2686,6 +2686,33 @@ _Categories: None_
 _None_
 
 ### Extensions
+#### Class: `org.eclipse.edc.iam.identitytrust.core.IatpDefaultServicesExtension`
+**Name:** "Identity And Trust Extension to register default services"
+
+**Overview:** No overview provided.
+
+
+##### Configuration: 
+
+| Key                            | Required | Type     | Default                   | Pattern | Min | Max | Description                                                                                                   |
+| ------------------------------ | -------- | -------- | ------------------------- | ------- | --- | --- | ------------------------------------------------------------------------------------------------------------- |
+| `edc.iam.sts.privatekey.alias` |          | `string` | `A random EC private key` |         |     |     | Alias of private key used for signing tokens, retrieved from private key resolver                             |
+| `edc.iam.sts.publickey.id`     |          | `string` | `A random EC public key`  |         |     |     | Id used by the counterparty to resolve the public key for token validation, e.g. did:example:123#public-key-0 |
+| `edc.iam.sts.token.expiration` |          | `string` | `5`                       |         |     |     | Self-issued ID Token expiration in minutes. By default is 5 minutes                                           |
+
+##### Provided services:
+- `org.eclipse.edc.identitytrust.SecureTokenService`
+- `org.eclipse.edc.identitytrust.TrustedIssuerRegistry`
+- `org.eclipse.edc.identitytrust.verification.SignatureSuiteRegistry`
+- `org.eclipse.edc.identitytrust.IatpParticipantAgentServiceExtension`
+- `org.eclipse.edc.identitytrust.scope.ScopeExtractorRegistry`
+- `org.eclipse.edc.spi.iam.AudienceResolver`
+- `org.eclipse.edc.identitytrust.ClaimTokenCreatorFunction`
+
+##### Referenced (injected) services:
+- `java.time.Clock` (required)
+- `org.eclipse.edc.spi.security.PrivateKeyResolver` (required)
+
 #### Class: `org.eclipse.edc.iam.identitytrust.core.IdentityAndTrustExtension`
 **Name:** "Identity And Trust Extension"
 
@@ -2735,33 +2762,6 @@ _None_
 - `org.eclipse.edc.policy.engine.spi.PolicyEngine` (required)
 - `org.eclipse.edc.identitytrust.scope.ScopeExtractorRegistry` (required)
 - `org.eclipse.edc.spi.monitor.Monitor` (required)
-
-#### Class: `org.eclipse.edc.iam.identitytrust.core.IatpDefaultServicesExtension`
-**Name:** "Identity And Trust Extension to register default services"
-
-**Overview:** No overview provided.
-
-
-##### Configuration: 
-
-| Key                            | Required | Type     | Default                   | Pattern | Min | Max | Description                                                                                                   |
-| ------------------------------ | -------- | -------- | ------------------------- | ------- | --- | --- | ------------------------------------------------------------------------------------------------------------- |
-| `edc.iam.sts.privatekey.alias` |          | `string` | `A random EC private key` |         |     |     | Alias of private key used for signing tokens, retrieved from private key resolver                             |
-| `edc.iam.sts.publickey.id`     |          | `string` | `A random EC public key`  |         |     |     | Id used by the counterparty to resolve the public key for token validation, e.g. did:example:123#public-key-0 |
-| `edc.iam.sts.token.expiration` |          | `string` | `5`                       |         |     |     | Self-issued ID Token expiration in minutes. By default is 5 minutes                                           |
-
-##### Provided services:
-- `org.eclipse.edc.identitytrust.SecureTokenService`
-- `org.eclipse.edc.identitytrust.TrustedIssuerRegistry`
-- `org.eclipse.edc.identitytrust.verification.SignatureSuiteRegistry`
-- `org.eclipse.edc.identitytrust.IatpParticipantAgentServiceExtension`
-- `org.eclipse.edc.identitytrust.scope.ScopeExtractorRegistry`
-- `org.eclipse.edc.spi.iam.AudienceResolver`
-- `org.eclipse.edc.identitytrust.ClaimTokenCreatorFunction`
-
-##### Referenced (injected) services:
-- `java.time.Clock` (required)
-- `org.eclipse.edc.spi.security.PrivateKeyResolver` (required)
 
 Module `org.eclipse.edc:identity-trust-issuers-configuration:0.5.2-SNAPSHOT`
 ----------------------------------------------------------------------------
@@ -3529,6 +3529,20 @@ _Categories: None_
 _None_
 
 ### Extensions
+#### Class: `org.eclipse.edc.iam.identitytrust.sts.core.StsDefaultStoresExtension`
+**Name:** "Secure Token Service Default Stores"
+
+**Overview:** No overview provided.
+
+
+##### Configuration: _None_
+
+##### Provided services:
+- `org.eclipse.edc.iam.identitytrust.sts.store.StsClientStore`
+
+##### Referenced (injected) services:
+_None_
+
 #### Class: `org.eclipse.edc.iam.identitytrust.sts.core.StsDefaultServicesExtension`
 **Name:** "Secure Token Service Default Services"
 
@@ -3551,20 +3565,6 @@ _None_
 - `org.eclipse.edc.spi.security.Vault` (required)
 - `org.eclipse.edc.spi.security.PrivateKeyResolver` (required)
 - `java.time.Clock` (required)
-
-#### Class: `org.eclipse.edc.iam.identitytrust.sts.core.StsDefaultStoresExtension`
-**Name:** "Secure Token Service Default Stores"
-
-**Overview:** No overview provided.
-
-
-##### Configuration: _None_
-
-##### Provided services:
-- `org.eclipse.edc.iam.identitytrust.sts.store.StsClientStore`
-
-##### Referenced (injected) services:
-_None_
 
 Module `org.eclipse.edc:identity-trust-sts-remote-core:0.5.2-SNAPSHOT`
 ----------------------------------------------------------------------
