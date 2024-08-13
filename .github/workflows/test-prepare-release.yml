@@ -1,0 +1,78 @@
+name: Test Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: the branch from which the release will be created
+        required: false
+        type: string
+        default: main
+      version:
+        description: the version number in the `x.y.z` form
+        required: true
+        type: string
+
+jobs:
+  Prepare-Release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: set release type
+        shell: bash
+        id: vars
+        run: |
+          type=release
+          if [[ ${{ inputs.branch }} != "main" ]] 
+          then
+            type=bugfix
+          fi
+          echo "type=$type" >> $GITHUB_OUTPUT
+
+      - name: create ${{ steps.vars.outputs.type }}/${{ inputs.version }} branch
+        shell: bash
+        run: |
+          git config user.name "eclipse-edc-bot"
+          git config user.email "edc-bot@eclipse.org"
+
+          git checkout -b ${{ steps.vars.outputs.type }}/${{ inputs.version }}
+          git push -f origin ${{ steps.vars.outputs.type }}/${{ inputs.version }}
+
+      - shell: bash
+        run: |
+          # updates the project version
+          sed -i 's#^version=.*#version=${{ inputs.version }}#g' $(find . -name "gradle.properties")
+
+          # updates the eventual core library version in the version catalog
+          sed -i 's#^edc = .*#edc = "${{ inputs.version }}"#g' gradle/libs.versions.toml
+
+      - name: Create prepare/${{ inputs.version }} branch and commit changes
+        run: |
+          git config user.name "eclipse-edc-bot"
+          git config user.email "edc-bot@eclipse.org"
+
+          git checkout -b prepare/${{ inputs.version }}
+          git add .
+          git commit -m "Prepare ${{ steps.vars.outputs.type }} ${{ inputs.version }}"
+          git push -f origin prepare/${{ inputs.version }}
+
+      - name: Create pull request
+        uses: thomaseizinger/create-pull-request@1.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          head: prepare/${{ inputs.version }}
+          base: ${{ steps.vars.outputs.type }}/${{ inputs.version }}
+          title: Prepare ${{ steps.vars.outputs.type }} ${{ inputs.version }}
+          reviewers: ${{ github.actor }}
+          body: |-
+            This PR was created in response to a manual trigger of the prepare release.
+            Versions have been bumped in to ${{ inputs.version }}.
+
+            Merging this PR will create and run a release workflow
