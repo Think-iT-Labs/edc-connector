@@ -126,7 +126,7 @@ public class IdentityAndTrustService implements IdentityService {
         var claimTokenResult = tokenValidationAction.apply(tokenRepresentation);
 
         if (claimTokenResult.failed()) {
-            return claimTokenResult.mapTo();
+            return claimTokenResult.mapFailure();
         }
 
         // create our own SI token, to request the VPs
@@ -142,7 +142,7 @@ public class IdentityAndTrustService implements IdentityService {
                 EXPIRATION_TIME, Instant.now().plus(5, ChronoUnit.MINUTES).toString());
         var siToken = secureTokenService.createToken(siTokenClaims, null);
         if (siToken.failed()) {
-            return siToken.mapTo();
+            return siToken.mapFailure();
         }
         var siTokenString = siToken.getContent().getToken();
 
@@ -151,7 +151,7 @@ public class IdentityAndTrustService implements IdentityService {
                 .compose(url -> credentialServiceClient.requestPresentation(url, siTokenString, context.getScopes().stream().toList()));
 
         if (vpResponse.failed()) {
-            return vpResponse.mapTo();
+            return vpResponse.mapFailure();
         }
 
         var presentations = vpResponse.getContent();

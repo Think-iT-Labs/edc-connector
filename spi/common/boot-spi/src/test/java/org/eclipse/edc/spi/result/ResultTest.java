@@ -129,7 +129,7 @@ class ResultTest {
     }
 
     @Test
-    void mapToEmpty_succeeded() {
+    void mapEmpty_succeeded() {
         var result = Result.success("foobar");
 
         Result<Void> mapped = result.mapEmpty();
@@ -138,44 +138,12 @@ class ResultTest {
     }
 
     @Test
-    void mapToEmpty_failed() {
+    void mapEmpty_failed() {
         var result = Result.failure("foobar");
 
         Result<String> mapped = result.mapEmpty();
 
         assertThat(mapped).isFailed().detail().isEqualTo("foobar");
-    }
-
-    @Test
-    void mapTo_succeeded() {
-        var res = Result.success("foobar");
-        Result<Void> mapped = res.mapTo();
-        assertThat(mapped.succeeded()).isTrue();
-        assertThat(mapped.getContent()).isNull();
-    }
-
-    @Test
-    void mapTo_failed() {
-        var res = Result.failure("foobar");
-        Result<String> mapped = res.mapTo();
-        assertThat(mapped.failed()).isTrue();
-        assertThat(mapped.getFailureDetail()).isEqualTo("foobar");
-    }
-
-    @Test
-    void mapTo_explicitType_succeeded() {
-        var res = Result.success("foobar");
-        var mapped = res.mapTo(Object.class);
-        assertThat(mapped.succeeded()).isTrue();
-        assertThat(mapped.getContent()).isNull();
-    }
-
-    @Test
-    void mapTo_explicitType_failed() {
-        var res = Result.failure("foobar");
-        var mapped = res.mapTo(String.class);
-        assertThat(mapped.failed()).isTrue();
-        assertThat(mapped.getFailureDetail()).isEqualTo("foobar");
     }
 
     @Test
@@ -193,7 +161,7 @@ class ResultTest {
         var finalResult = result1
                 .flatMap(r -> Result.success("res2"))
                 .flatMap(r -> Result.failure("some failure"))
-                .flatMap(Result::mapTo);
+                .flatMap(r -> Result.success("res3"));
 
         assertThat(finalResult.failed()).isTrue();
         assertThat(finalResult.getFailureDetail()).isEqualTo("some failure");

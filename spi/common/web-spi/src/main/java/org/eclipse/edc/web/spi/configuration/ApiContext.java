@@ -26,7 +26,4 @@ public interface ApiContext {
     String VERSION = "version";
     String STS = "sts";
 
-    @Deprecated(since = "0.6.4")
-    String SIGNALING = "signaling";
-
 }

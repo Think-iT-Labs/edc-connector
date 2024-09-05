@@ -44,8 +44,6 @@ import static org.eclipse.edc.spi.constants.CoreConstants.EDC_NAMESPACE;
 public class DataPlaneInstance extends StatefulEntity<DataPlaneInstance> {
 
     public static final String DATAPLANE_INSTANCE_TYPE = EDC_NAMESPACE + "DataPlaneInstance";
-    @Deprecated(since = "0.6.3")
-    public static final String TURN_COUNT = EDC_NAMESPACE + "turnCount";
     public static final String LAST_ACTIVE = EDC_NAMESPACE + "lastActive";
     public static final String URL = EDC_NAMESPACE + "url";
     public static final String PROPERTIES = EDC_NAMESPACE + "properties";
@@ -63,8 +61,6 @@ public class DataPlaneInstance extends StatefulEntity<DataPlaneInstance> {
     private Set<String> allowedSourceTypes = new HashSet<>();
     @Deprecated(since = "0.7.0")
     private Set<String> allowedDestTypes = new HashSet<>();
-    @Deprecated(since = "0.6.3")
-    private int turnCount = 0;
     private long lastActive = Instant.now().toEpochMilli();
     private URL url;
 
@@ -76,7 +72,6 @@ public class DataPlaneInstance extends StatefulEntity<DataPlaneInstance> {
         var builder = Builder.newInstance()
                 .url(url)
                 .lastActive(lastActive)
-                .turnCount(turnCount)
                 .allowedDestTypes(allowedDestTypes)
                 .allowedSourceTypes(allowedSourceTypes)
                 .allowedTransferType(allowedTransferTypes)
@@ -106,11 +101,6 @@ public class DataPlaneInstance extends StatefulEntity<DataPlaneInstance> {
 
     public URL getUrl() {
         return url;
-    }
-
-    @Deprecated(since = "0.6.3")
-    public int getTurnCount() {
-        return turnCount;
     }
 
     public long getLastActive() {
@@ -160,12 +150,6 @@ public class DataPlaneInstance extends StatefulEntity<DataPlaneInstance> {
         @JsonCreator
         public static Builder newInstance() {
             return new Builder(new DataPlaneInstance());
-        }
-
-        @Deprecated(since = "0.6.3")
-        public Builder turnCount(int turnCount) {
-            entity.turnCount = turnCount;
-            return this;
         }
 
         public Builder lastActive(long lastActive) {

@@ -42,7 +42,6 @@ class DataPlaneInstanceTest {
     void verifySerialization() throws MalformedURLException, JsonProcessingException {
         var inst = DataPlaneInstance.Builder.newInstance()
                 .id("test-id")
-                .turnCount(7)
                 .lastActive(Instant.now().toEpochMilli())
                 .url(new URL("http://localhost:8234/some/path"))
                 .property("someprop", "someval")

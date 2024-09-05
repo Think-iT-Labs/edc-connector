@@ -34,7 +34,6 @@ import static org.eclipse.edc.connector.dataplane.selector.spi.instance.DataPlan
 import static org.eclipse.edc.connector.dataplane.selector.spi.instance.DataPlaneInstance.ALLOWED_SOURCE_TYPES;
 import static org.eclipse.edc.connector.dataplane.selector.spi.instance.DataPlaneInstance.ALLOWED_TRANSFER_TYPES;
 import static org.eclipse.edc.connector.dataplane.selector.spi.instance.DataPlaneInstance.LAST_ACTIVE;
-import static org.eclipse.edc.connector.dataplane.selector.spi.instance.DataPlaneInstance.TURN_COUNT;
 import static org.eclipse.edc.connector.dataplane.selector.spi.instance.DataPlaneInstance.URL;
 import static org.eclipse.edc.jsonld.spi.JsonLdKeywords.CONTEXT;
 import static org.eclipse.edc.jsonld.spi.JsonLdKeywords.ID;
@@ -67,14 +66,12 @@ class JsonObjectToDataPlaneInstanceTransformerTest {
                 .add(URL, "http://somewhere.com:1234/api/v1")
                 .add(ALLOWED_SOURCE_TYPES, createArrayBuilder(Set.of("source1", "source2")))
                 .add(LAST_ACTIVE, 234L)
-                .add(TURN_COUNT, 42)
                 .add(ALLOWED_DEST_TYPES, createArrayBuilder(Set.of("dest1", "dest2")))
                 .build();
 
         var dpi = transformer.transform(expand(json), context);
         assertThat(dpi).isNotNull();
         assertThat(dpi.getUrl().toString()).isEqualTo("http://somewhere.com:1234/api/v1");
-        assertThat(dpi.getTurnCount()).isEqualTo(42);
         assertThat(dpi.getLastActive()).isEqualTo(234L);
         assertThat(dpi.getAllowedDestTypes()).hasSize(2).containsExactlyInAnyOrder("dest1", "dest2");
         assertThat(dpi.getAllowedSourceTypes()).hasSize(2).containsExactlyInAnyOrder("source1", "source2");
@@ -103,7 +100,6 @@ class JsonObjectToDataPlaneInstanceTransformerTest {
                 .add(URL, "http://somewhere.com:1234/api/v1")
                 .add(ALLOWED_SOURCE_TYPES, createArrayBuilder(Set.of("source1", "source2")))
                 .add(LAST_ACTIVE, 234L)
-                .add(TURN_COUNT, 42)
                 .add(ALLOWED_DEST_TYPES, createArrayBuilder(Set.of("dest1", "dest2")))
                 .add(ALLOWED_TRANSFER_TYPES, createArrayBuilder(Set.of("transfer1", "transfer2")))
                 .build();
@@ -111,7 +107,6 @@ class JsonObjectToDataPlaneInstanceTransformerTest {
         var dpi = transformer.transform(expand(json), context);
         assertThat(dpi).isNotNull();
         assertThat(dpi.getUrl().toString()).isEqualTo("http://somewhere.com:1234/api/v1");
-        assertThat(dpi.getTurnCount()).isEqualTo(42);
         assertThat(dpi.getLastActive()).isEqualTo(234L);
         assertThat(dpi.getAllowedDestTypes()).hasSize(2).containsExactlyInAnyOrder("dest1", "dest2");
         assertThat(dpi.getAllowedSourceTypes()).hasSize(2).containsExactlyInAnyOrder("source1", "source2");
