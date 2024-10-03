@@ -21,11 +21,8 @@ import org.eclipse.edc.spi.result.Result;
 /**
  * Invoked during policy evaluation as when the left operand of an atomic constraint evaluates to a key that is not bound to a {@link AtomicConstraintFunction}.
  * The function is responsible for performing policy evaluation on the right operand and the left operand.
- *
- * @deprecated use {@link org.eclipse.edc.policy.model.DynamicAtomicConstraintFunction}.
  */
-@Deprecated(since = "0.10.0")
-public interface DynamicAtomicConstraintFunction<R extends Rule> {
+public interface DynamicAtomicConstraintRuleFunction<R extends Rule, C extends PolicyContext> {
 
     /**
      * Performs the evaluation.
@@ -36,7 +33,7 @@ public interface DynamicAtomicConstraintFunction<R extends Rule> {
      * @param rule       the rule associated with the constraint
      * @param context    the policy context
      */
-    boolean evaluate(Object leftValue, Operator operator, Object rightValue, R rule, PolicyContext context);
+    boolean evaluate(Object leftValue, Operator operator, Object rightValue, R rule, C context);
 
     /**
      * Returns true if the function can evaluate the input left operand.

@@ -51,13 +51,22 @@ public interface PolicyEngine {
     /**
      * Returns a filtered policy for the scope. This involves recursively removing rules and constraints not bound to the scope and returning a modified copy of the unfiltered
      * policy.
+     *
+     * @deprecated use the scoped one
      */
+    @Deprecated(since = "0.10.0")
     Policy filter(Policy policy, String scope);
 
     /**
      * Evaluates the given policy with a context for the given scope.
+     *
+     * @deprecated use {{@link #forScope(PolicyScope)}}.
      */
+    @Deprecated(since = "0.10.0")
     Result<Void> evaluate(String scope, Policy policy, PolicyContext context);
+
+    // TODO: document
+    <C extends PolicyContext, S extends PolicyScope<C>> ScopedPolicyEngine<C> forScope(S scope);
 
     /**
      * Validates the given policy.
@@ -66,7 +75,10 @@ public interface PolicyEngine {
 
     /**
      * Returns the {@link PolicyEvaluationPlan} of the given policy within the given scope.
+     *
+     * @deprecated use the scoped one
      */
+    @Deprecated(since = "0.10.0")
     PolicyEvaluationPlan createEvaluationPlan(String scope, Policy policy);
 
     /**
@@ -76,7 +88,10 @@ public interface PolicyEngine {
      * @param type     the function type
      * @param key      the key
      * @param function the function
+     *
+     * @deprecated use scoped engine
      */
+    @Deprecated(since = "0.10.0")
     <R extends Rule> void registerFunction(String scope, Class<R> type, String key, AtomicConstraintFunction<R> function);
 
     /**
@@ -86,7 +101,9 @@ public interface PolicyEngine {
      * @param scope    the scope the function applies to
      * @param type     the function type
      * @param function the function
+     * @deprecated use scoped engine
      */
+    @Deprecated(since = "0.10.0")
     <R extends Rule> void registerFunction(String scope, Class<R> type, DynamicAtomicConstraintFunction<R> function);
 
     /**
@@ -95,7 +112,9 @@ public interface PolicyEngine {
      * @param scope    the scope the function applies to
      * @param type     the {@link Rule} subtype
      * @param function the function
+     * @deprecated use scoped engine
      */
+    @Deprecated(since = "0.10.0")
     <R extends Rule> void registerFunction(String scope, Class<R> type, RuleFunction<R> function);
 
     /**
@@ -108,7 +127,9 @@ public interface PolicyEngine {
 
     /**
      * Registers a function that performs pre-validation on the policy for the given scope.
+     * @deprecated use scoped engine
      */
+    @Deprecated(since = "0.10.0")
     void registerPreValidator(String scope, PolicyValidatorFunction validator);
 
     /**
@@ -121,6 +142,8 @@ public interface PolicyEngine {
 
     /**
      * Registers a function that performs post-validation on the policy for the given scope.
+     * @deprecated use scoped engine
      */
+    @Deprecated(since = "0.10.0")
     void registerPostValidator(String scope, PolicyValidatorFunction validator);
 }

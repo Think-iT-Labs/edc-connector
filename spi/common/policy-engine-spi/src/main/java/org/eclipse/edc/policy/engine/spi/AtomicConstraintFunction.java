@@ -21,8 +21,11 @@ import org.eclipse.edc.spi.result.Result;
 /**
  * Invoked during policy evaluation when the left operand of an atomic constraint evaluates to a key associated with this function. The function is responsible for performing
  * policy evaluation on the right operand.
+ *
+ * @deprecated switch to {@link org.eclipse.edc.policy.model.AtomicConstraintFunction}.
  */
 @FunctionalInterface
+@Deprecated(since = "0.10.0")
 public interface AtomicConstraintFunction<R extends Rule> {
 
     /**

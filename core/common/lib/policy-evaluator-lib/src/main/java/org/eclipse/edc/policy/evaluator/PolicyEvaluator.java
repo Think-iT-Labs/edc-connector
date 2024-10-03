@@ -248,7 +248,6 @@ public class PolicyEvaluator implements Policy.Visitor<Boolean>, Rule.Visitor<Bo
                                                           DynamicAtomicConstraintFunction<Object, Object, R, Boolean> function) {
     }
 
-
     public static class Builder {
         private final PolicyEvaluator evaluator;
 

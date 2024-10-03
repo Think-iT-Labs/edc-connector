@@ -15,6 +15,8 @@
 package org.eclipse.edc.policy.engine.spi.plan.step;
 
 import org.eclipse.edc.policy.engine.spi.AtomicConstraintFunction;
+import org.eclipse.edc.policy.engine.spi.AtomicConstraintRuleFunction;
+import org.eclipse.edc.policy.engine.spi.PolicyContext;
 import org.eclipse.edc.policy.model.AtomicConstraint;
 import org.eclipse.edc.policy.model.Rule;
 
@@ -32,7 +34,7 @@ import static org.eclipse.edc.spi.constants.CoreConstants.EDC_NAMESPACE;
 public record AtomicConstraintStep(AtomicConstraint constraint,
                                    List<String> filteringReasons,
                                    Rule rule,
-                                   AtomicConstraintFunction<? extends Rule> function) implements ConstraintStep {
+                                   String functionName) implements ConstraintStep {
 
     public static final String EDC_ATOMIC_CONSTRAINT_STEP_TYPE = EDC_NAMESPACE + "AtomicConstraintStep";
     public static final String EDC_ATOMIC_CONSTRAINT_STEP_IS_FILTERED = EDC_NAMESPACE + "isFiltered";
@@ -42,12 +44,6 @@ public record AtomicConstraintStep(AtomicConstraint constraint,
 
     public boolean isFiltered() {
         return !filteringReasons.isEmpty();
-    }
-
-    public String functionName() {
-        return Optional.ofNullable(function)
-                .map(AtomicConstraintFunction::name)
-                .orElse(null);
     }
 
     public List<String> functionParams() {

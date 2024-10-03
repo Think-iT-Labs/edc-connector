@@ -12,8 +12,15 @@
  *
  */
 
-package org.eclipse.edc.policy.engine.spi;
+package org.eclipse.edc.connector.controlplane.contract.spi;
 
-public record PolicyScope<C extends PolicyContext>(String name) {
+import org.eclipse.edc.policy.engine.spi.PolicyScope;
+
+public class TransferPolicyScope implements PolicyScope<TransferScopeContext> {
+    @Override
+    public String name() {
+        return "transfer";
+    }
+
 
 }

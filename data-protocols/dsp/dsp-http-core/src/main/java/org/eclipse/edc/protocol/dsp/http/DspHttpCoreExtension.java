@@ -31,7 +31,6 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.types.protocol.Transf
 import org.eclipse.edc.http.spi.EdcHttpClient;
 import org.eclipse.edc.jsonld.spi.JsonLd;
 import org.eclipse.edc.policy.engine.spi.PolicyEngine;
-import org.eclipse.edc.policy.engine.spi.PolicyScope;
 import org.eclipse.edc.protocol.dsp.http.dispatcher.DspHttpRemoteMessageDispatcherImpl;
 import org.eclipse.edc.protocol.dsp.http.message.DspRequestHandlerImpl;
 import org.eclipse.edc.protocol.dsp.http.serialization.JsonLdRemoteMessageSerializerImpl;
@@ -69,19 +68,16 @@ public class DspHttpCoreExtension implements ServiceExtension {
     /**
      * Policy scope evaluated when a contract negotiation request is made.
      */
-    @PolicyScope
     private static final String CONTRACT_NEGOTIATION_REQUEST_SCOPE = "request.contract.negotiation";
 
     /**
      * Policy scope evaluated when a transfer process request is made.
      */
-    @PolicyScope
     private static final String TRANSFER_PROCESS_REQUEST_SCOPE = "request.transfer.process";
 
     /**
      * Policy scope evaluated when an outgoing catalog request is made
      */
-    @PolicyScope
     private static final String CATALOGING_REQUEST_SCOPE = "request.catalog";
 
     @Inject

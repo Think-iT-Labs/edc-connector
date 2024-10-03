@@ -30,7 +30,7 @@ public class PolicyContextImpl implements PolicyContext {
     private final List<String> problems = new ArrayList<>();
     private final Map<Class<?>, Object> additional = new HashMap<>();
 
-    private PolicyContextImpl() {
+    protected PolicyContextImpl() {
     }
 
     @Override

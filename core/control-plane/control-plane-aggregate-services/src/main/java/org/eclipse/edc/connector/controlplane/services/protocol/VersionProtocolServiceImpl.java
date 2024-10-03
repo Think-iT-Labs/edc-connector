@@ -18,13 +18,11 @@ import org.eclipse.edc.connector.controlplane.services.spi.protocol.ProtocolToke
 import org.eclipse.edc.connector.controlplane.services.spi.protocol.ProtocolVersionRegistry;
 import org.eclipse.edc.connector.controlplane.services.spi.protocol.ProtocolVersions;
 import org.eclipse.edc.connector.controlplane.services.spi.protocol.VersionProtocolService;
-import org.eclipse.edc.policy.engine.spi.PolicyScope;
 import org.eclipse.edc.spi.iam.TokenRepresentation;
 import org.eclipse.edc.spi.result.ServiceResult;
 
 public class VersionProtocolServiceImpl implements VersionProtocolService {
 
-    @PolicyScope
     public static final String VERSIONING_REQUEST_SCOPE = "request.version";
 
     private final ProtocolVersionRegistry registry;

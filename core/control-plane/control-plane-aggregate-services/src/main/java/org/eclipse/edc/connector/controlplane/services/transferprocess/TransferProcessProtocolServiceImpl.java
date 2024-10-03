@@ -33,7 +33,6 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.types.protocol.Transf
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.protocol.TransferStartMessage;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.protocol.TransferSuspensionMessage;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.protocol.TransferTerminationMessage;
-import org.eclipse.edc.policy.engine.spi.PolicyScope;
 import org.eclipse.edc.spi.agent.ParticipantAgent;
 import org.eclipse.edc.spi.iam.TokenRepresentation;
 import org.eclipse.edc.spi.monitor.Monitor;
@@ -57,7 +56,6 @@ import static org.eclipse.edc.connector.controlplane.transfer.spi.types.Transfer
 
 public class TransferProcessProtocolServiceImpl implements TransferProcessProtocolService {
 
-    @PolicyScope
     public static final String TRANSFER_PROCESS_REQUEST_SCOPE = "request.transfer.process";
 
     private final TransferProcessStore transferProcessStore;

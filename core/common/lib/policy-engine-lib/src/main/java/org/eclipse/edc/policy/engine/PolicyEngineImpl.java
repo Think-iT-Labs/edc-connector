@@ -14,37 +14,26 @@
 
 package org.eclipse.edc.policy.engine;
 
-import org.eclipse.edc.policy.engine.plan.PolicyEvaluationPlanner;
 import org.eclipse.edc.policy.engine.spi.AtomicConstraintFunction;
+import org.eclipse.edc.policy.engine.spi.AtomicConstraintRuleFunction;
 import org.eclipse.edc.policy.engine.spi.DynamicAtomicConstraintFunction;
+import org.eclipse.edc.policy.engine.spi.DynamicAtomicConstraintRuleFunction;
 import org.eclipse.edc.policy.engine.spi.PolicyContext;
 import org.eclipse.edc.policy.engine.spi.PolicyEngine;
+import org.eclipse.edc.policy.engine.spi.PolicyScope;
 import org.eclipse.edc.policy.engine.spi.PolicyValidatorFunction;
 import org.eclipse.edc.policy.engine.spi.RuleFunction;
+import org.eclipse.edc.policy.engine.spi.ScopedPolicyEngine;
 import org.eclipse.edc.policy.engine.spi.plan.PolicyEvaluationPlan;
-import org.eclipse.edc.policy.engine.validation.PolicyValidator;
 import org.eclipse.edc.policy.engine.validation.RuleValidator;
-import org.eclipse.edc.policy.evaluator.PolicyEvaluator;
-import org.eclipse.edc.policy.evaluator.RuleProblem;
-import org.eclipse.edc.policy.model.Duty;
-import org.eclipse.edc.policy.model.Permission;
+import org.eclipse.edc.policy.model.Operator;
 import org.eclipse.edc.policy.model.Policy;
-import org.eclipse.edc.policy.model.Prohibition;
 import org.eclipse.edc.policy.model.Rule;
 import org.eclipse.edc.spi.result.Result;
-import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.function.BiFunction;
-
-import static java.util.stream.Collectors.toList;
-import static org.eclipse.edc.spi.result.Result.failure;
-import static org.eclipse.edc.spi.result.Result.success;
 
 /**
  * Default implementation of the policy engine.
@@ -53,13 +42,8 @@ public class PolicyEngineImpl implements PolicyEngine {
 
     public static final String ALL_SCOPES_DELIMITED = ALL_SCOPES + DELIMITER;
 
-    private final Map<String, List<ConstraintFunctionEntry<Rule>>> constraintFunctions = new TreeMap<>();
+    private final Map<PolicyScope<?>, ScopedPolicyEngine<?>> scopedEngines = new HashMap<>();
 
-    private final List<DynamicConstraintFunctionEntry<Rule>> dynamicConstraintFunctions = new ArrayList<>();
-
-    private final Map<String, List<RuleFunctionEntry<Rule>>> ruleFunctions = new TreeMap<>();
-    private final Map<String, List<PolicyValidatorFunction>> preValidators = new HashMap<>();
-    private final Map<String, List<PolicyValidatorFunction>> postValidators = new HashMap<>();
     private final ScopeFilter scopeFilter;
     private final RuleValidator ruleValidator;
 
@@ -74,125 +58,69 @@ public class PolicyEngineImpl implements PolicyEngine {
 
     @Override
     public Policy filter(Policy policy, String scope) {
-        return scopeFilter.applyScope(policy, scope);
+        return forScope(new PolicyScope<>(scope)).filter(policy);
     }
 
     @Override
     public Result<Void> evaluate(String scope, Policy policy, PolicyContext context) {
-        var delimitedScope = scope + ".";
+        return forScope(new PolicyScope<>(scope)).evaluate(policy, context);
+    }
 
-        var scopedPreValidators = preValidators.entrySet().stream().filter(entry -> scopeFilter(entry.getKey(), delimitedScope)).flatMap(l -> l.getValue().stream()).toList();
-        for (var validator : scopedPreValidators) {
-            if (!validator.apply(policy, context)) {
-                return failValidator("Pre-validator", validator, context);
-            }
-        }
-
-        var evalBuilder = PolicyEvaluator.Builder.newInstance();
-
-        ruleFunctions.entrySet().stream().filter(entry -> scopeFilter(entry.getKey(), delimitedScope)).flatMap(entry -> entry.getValue().stream()).forEach(entry -> {
-            if (Duty.class.isAssignableFrom(entry.type)) {
-                evalBuilder.dutyRuleFunction((rule) -> entry.function.evaluate(rule, context));
-            } else if (Permission.class.isAssignableFrom(entry.type)) {
-                evalBuilder.permissionRuleFunction((rule) -> entry.function.evaluate(rule, context));
-            } else if (Prohibition.class.isAssignableFrom(entry.type)) {
-                evalBuilder.prohibitionRuleFunction((rule) -> entry.function.evaluate(rule, context));
-            }
-        });
-
-        constraintFunctions.entrySet().stream().filter(entry -> scopeFilter(entry.getKey(), delimitedScope)).flatMap(entry -> entry.getValue().stream()).forEach(entry -> {
-            if (Duty.class.isAssignableFrom(entry.type)) {
-                evalBuilder.dutyFunction(entry.key, (operator, value, duty) -> entry.function.evaluate(operator, value, duty, context));
-            } else if (Permission.class.isAssignableFrom(entry.type)) {
-                evalBuilder.permissionFunction(entry.key, (operator, value, permission) -> entry.function.evaluate(operator, value, permission, context));
-            } else if (Prohibition.class.isAssignableFrom(entry.type)) {
-                evalBuilder.prohibitionFunction(entry.key, (operator, value, prohibition) -> entry.function.evaluate(operator, value, prohibition, context));
-            }
-        });
-
-        dynamicConstraintFunctions.stream().filter(entry -> scopeFilter(entry.scope, delimitedScope)).forEach(entry -> {
-            if (Duty.class.isAssignableFrom(entry.type)) {
-                evalBuilder.dynamicDutyFunction(entry.function::canHandle, (key, operator, value, duty) -> entry.function.evaluate(key, operator, value, duty, context));
-            } else if (Permission.class.isAssignableFrom(entry.type)) {
-                evalBuilder.dynamicPermissionFunction(entry.function::canHandle, (key, operator, value, permission) -> entry.function.evaluate(key, operator, value, permission, context));
-            } else if (Prohibition.class.isAssignableFrom(entry.type)) {
-                evalBuilder.dynamicProhibitionFunction(entry.function::canHandle, (key, operator, value, prohibition) -> entry.function.evaluate(key, operator, value, prohibition, context));
-            }
-        });
-
-        var evaluator = evalBuilder.build();
-
-        var filteredPolicy = scopeFilter.applyScope(policy, scope);
-
-        var result = evaluator.evaluate(filteredPolicy);
-
-        if (result.valid()) {
-
-            var scopedPostValidators = postValidators.entrySet().stream().filter(entry -> scopeFilter(entry.getKey(), delimitedScope)).flatMap(l -> l.getValue().stream()).toList();
-            for (var validator : scopedPostValidators) {
-                if (!validator.apply(policy, context)) {
-                    return failValidator("Post-validator", validator, context);
-                }
-            }
-
-            return success();
-        } else {
-            return failure(result.getProblems().stream().map(RuleProblem::getDescription).collect(toList()));
-        }
+    @Override
+    public <C extends PolicyContext, S extends PolicyScope<C>> ScopedPolicyEngine<C> forScope(S scope) {
+        return (ScopedPolicyEngine<C>) scopedEngines.computeIfAbsent(scope, s -> new ScopedPolicyEngineImpl<>(s, scopeFilter, ruleValidator));
     }
 
     @Override
     public Result<Void> validate(Policy policy) {
-        var validatorBuilder = PolicyValidator.Builder.newInstance()
-                .ruleValidator(ruleValidator);
-
-        constraintFunctions.values().stream()
-                .flatMap(Collection::stream)
-                .forEach(entry -> validatorBuilder.evaluationFunction(entry.key, entry.type, entry.function));
-
-        dynamicConstraintFunctions.forEach(entry -> validatorBuilder.dynamicEvaluationFunction(entry.type, entry.function));
-
-        return validatorBuilder.build().validate(policy);
+        return scopedEngines.values().stream()
+                .map(it -> it.validate(policy))
+                .reduce(Result.success(), Result::merge);
     }
 
     @Override
     public PolicyEvaluationPlan createEvaluationPlan(String scope, Policy policy) {
-        var planner = PolicyEvaluationPlanner.Builder.newInstance(scope).ruleValidator(ruleValidator);
-
-        preValidators.forEach(planner::preValidators);
-        postValidators.forEach(planner::postValidators);
-
-        constraintFunctions.forEach((functionScope, entry) -> entry.forEach(constraintEntry -> {
-            planner.evaluationFunction(functionScope, constraintEntry.key, constraintEntry.type, constraintEntry.function);
-        }));
-
-        dynamicConstraintFunctions.forEach(dynFunctions ->
-                planner.evaluationFunction(dynFunctions.scope, dynFunctions.type, dynFunctions.function)
-        );
-
-        ruleFunctions.forEach((functionScope, entry) -> entry.forEach(functionEntry -> {
-            planner.evaluationFunction(functionScope, functionEntry.type, functionEntry.function);
-        }));
-
-        return policy.accept(planner.build());
+        return forScope(new PolicyScope<>(scope)).createEvaluationPlan(policy);
     }
 
     @Override
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     public <R extends Rule> void registerFunction(String scope, Class<R> type, String key, AtomicConstraintFunction<R> function) {
-        constraintFunctions.computeIfAbsent(scope + ".", k -> new ArrayList<>()).add(new ConstraintFunctionEntry(type, key, function));
+        forScope(new PolicyScope<>(scope)).registerFunction(type, key, new AtomicConstraintRuleFunction<R, PolicyContext>() {
+            @Override
+            public boolean evaluate(Operator operator, Object rightValue, R rule, PolicyContext context) {
+                return function.evaluate(operator, rightValue, rule, context);
+            }
+
+            @Override
+            public Result<Void> validate(Operator operator, Object rightValue, R rule) {
+                return function.validate(operator, rightValue, rule);
+            }
+        });
     }
 
     @Override
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     public <R extends Rule> void registerFunction(String scope, Class<R> type, DynamicAtomicConstraintFunction<R> function) {
-        dynamicConstraintFunctions.add(new DynamicConstraintFunctionEntry(type, scope + DELIMITER, function));
+        forScope(new PolicyScope<>(scope)).registerFunction(type, new DynamicAtomicConstraintRuleFunction<>() {
+            @Override
+            public boolean evaluate(Object leftValue, Operator operator, Object rightValue, R rule, PolicyContext context) {
+                return function.evaluate(leftValue, operator, rightValue, rule, context);
+            }
+
+            @Override
+            public Result<Void> validate(Object leftValue, Operator operator, Object rightValue, R rule) {
+                return function.validate(leftValue, operator, rightValue, rule);
+            }
+
+            @Override
+            public boolean canHandle(Object leftValue) {
+                return function.canHandle(leftValue);
+            }
+        });
     }
 
     @Override
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     public <R extends Rule> void registerFunction(String scope, Class<R> type, RuleFunction<R> function) {
-        ruleFunctions.computeIfAbsent(scope + ".", k -> new ArrayList<>()).add(new RuleFunctionEntry(type, function));
+        forScope(new PolicyScope<>(scope)).registerFunction(type, function::evaluate);
     }
 
     @Override
@@ -202,7 +130,7 @@ public class PolicyEngineImpl implements PolicyEngine {
 
     @Override
     public void registerPreValidator(String scope, PolicyValidatorFunction validator) {
-        preValidators.computeIfAbsent(scope + DELIMITER, k -> new ArrayList<>()).add(validator);
+        forScope(new PolicyScope<>(scope)).registerPreValidator(validator);
     }
 
     @Override
@@ -212,46 +140,7 @@ public class PolicyEngineImpl implements PolicyEngine {
 
     @Override
     public void registerPostValidator(String scope, PolicyValidatorFunction validator) {
-        postValidators.computeIfAbsent(scope + DELIMITER, k -> new ArrayList<>()).add(validator);
-    }
-
-    @NotNull
-    private Result<Void> failValidator(String type, PolicyValidatorFunction validator, PolicyContext context) {
-        return failure(context.hasProblems() ? context.getProblems() : List.of(type + " failed: " + validator.getClass().getName()));
-    }
-
-    private static class ConstraintFunctionEntry<R extends Rule> {
-        Class<R> type;
-        String key;
-        AtomicConstraintFunction<R> function;
-
-        ConstraintFunctionEntry(Class<R> type, String key, AtomicConstraintFunction<R> function) {
-            this.type = type;
-            this.key = key;
-            this.function = function;
-        }
-    }
-
-    private static class DynamicConstraintFunctionEntry<R extends Rule> {
-        Class<R> type;
-        String scope;
-        DynamicAtomicConstraintFunction<R> function;
-
-        DynamicConstraintFunctionEntry(Class<R> type, String scope, DynamicAtomicConstraintFunction<R> function) {
-            this.type = type;
-            this.scope = scope;
-            this.function = function;
-        }
-    }
-
-    private static class RuleFunctionEntry<R extends Rule> {
-        Class<R> type;
-        RuleFunction<R> function;
-
-        RuleFunctionEntry(Class<R> type, RuleFunction<R> function) {
-            this.type = type;
-            this.function = function;
-        }
+        forScope(new PolicyScope<>(scope)).registerPostValidator(validator);
     }
 
     private record PolicyValidatorFunctionWrapper(

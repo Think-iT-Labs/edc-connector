@@ -48,13 +48,14 @@ import static org.eclipse.edc.policy.model.Operator.EQ;
 import static org.junit.jupiter.params.provider.Arguments.of;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@Deprecated(since = "0.10.0")
 class PolicyEngineImplValidationTest {
 
     private final RuleBindingRegistry bindingRegistry = new RuleBindingRegistryImpl();
     private PolicyEngine policyEngine;
-
 
     @BeforeEach
     void setUp() {
@@ -78,8 +79,8 @@ class PolicyEngineImplValidationTest {
         var constraint = AtomicConstraint.Builder.newInstance().leftExpression(left).operator(EQ).rightExpression(right).build();
         var permission = Permission.Builder.newInstance().constraint(constraint).build();
         var policy = Policy.Builder.newInstance().permission(permission).build();
-        policyEngine.registerFunction(ALL_SCOPES, Duty.class, "foo", (op, rv, r, ctx) -> true);
-        policyEngine.registerFunction(ALL_SCOPES, Prohibition.class, "foo", (op, rv, r, ctx) -> true);
+        policyEngine.registerFunction("test-scope", Duty.class, "foo", (op, rv, r, ctx) -> true);
+        policyEngine.registerFunction("test-scope", Prohibition.class, "foo", (op, rv, r, ctx) -> true);
 
         var result = policyEngine.validate(policy);
 
@@ -94,7 +95,7 @@ class PolicyEngineImplValidationTest {
     @ArgumentsSource(PolicyProvider.class)
     void validate_whenKeyIsNotBoundInTheRegistry(Policy policy, Class<Rule> ruleClass, String key) {
 
-        policyEngine.registerFunction(ALL_SCOPES, ruleClass, key, (op, rv, duty, ctx) -> true);
+        policyEngine.registerFunction("test-scope", ruleClass, key, (op, rv, duty, ctx) -> true);
 
         var result = policyEngine.validate(policy);
 
@@ -110,7 +111,7 @@ class PolicyEngineImplValidationTest {
 
 
         bindingRegistry.bind(key, ALL_SCOPES);
-        policyEngine.registerFunction(ALL_SCOPES, ruleClass, key, (op, rv, duty, ctx) -> true);
+        policyEngine.registerFunction("test-scope", ruleClass, key, (op, rv, duty, ctx) -> true);
 
         var result = policyEngine.validate(policy);
 
@@ -136,7 +137,7 @@ class PolicyEngineImplValidationTest {
         when(function.validate(any(), any(), any(), any())).thenReturn(Result.success());
 
         bindingRegistry.dynamicBind(s -> Set.of(ALL_SCOPES));
-        policyEngine.registerFunction(ALL_SCOPES, Duty.class, function);
+        policyEngine.registerFunction("test-scope", Duty.class, function);
 
         var result = policyEngine.validate(policy);
 
@@ -157,7 +158,7 @@ class PolicyEngineImplValidationTest {
         when(function.validate(any(), any(), any(), any())).thenReturn(Result.success());
 
         bindingRegistry.dynamicBind(s -> Set.of(ALL_SCOPES));
-        policyEngine.registerFunction(ALL_SCOPES, ruleClass, function);
+        policyEngine.registerFunction("test-scope", ruleClass, function);
 
         var result = policyEngine.validate(policy);
 
@@ -174,7 +175,7 @@ class PolicyEngineImplValidationTest {
         when(function.canHandle(key)).thenReturn(false);
 
         bindingRegistry.dynamicBind(s -> Set.of(ALL_SCOPES));
-        policyEngine.registerFunction(ALL_SCOPES, ruleClass, function);
+        policyEngine.registerFunction("test-scope", ruleClass, function);
 
         var result = policyEngine.validate(policy);
 
@@ -195,7 +196,7 @@ class PolicyEngineImplValidationTest {
         when(function.validate(any(), any(), any(), any())).thenReturn(Result.failure("Dynamic function validation failure"));
 
         bindingRegistry.dynamicBind(s -> Set.of(ALL_SCOPES));
-        policyEngine.registerFunction(ALL_SCOPES, ruleClass, function);
+        policyEngine.registerFunction("test-scope", ruleClass, function);
 
         var result = policyEngine.validate(policy);
 
@@ -203,22 +204,20 @@ class PolicyEngineImplValidationTest {
 
     }
 
-
     @ParameterizedTest
     @ArgumentsSource(PolicyProvider.class)
     void validate_shouldFail_whenFunctionValidationFails(Policy policy, Class<Rule> ruleClass, String key) {
-
         AtomicConstraintFunction<Rule> function = mock();
 
         when(function.validate(any(), any(), any())).thenReturn(Result.failure("Function validation failure"));
 
         bindingRegistry.bind(key, ALL_SCOPES);
-        policyEngine.registerFunction(ALL_SCOPES, ruleClass, key, function);
+        policyEngine.registerFunction("test-scope", ruleClass, key, function);
 
         var result = policyEngine.validate(policy);
 
+        verify(function).validate(any(), any(), any());
         assertThat(result).isFailed().detail().contains("Function validation failure");
-
     }
 
     @Test
@@ -236,7 +235,7 @@ class PolicyEngineImplValidationTest {
         when(function.validate(any(), any(), any())).thenReturn(Result.success());
 
         bindingRegistry.bind("foo", ALL_SCOPES);
-        policyEngine.registerFunction(ALL_SCOPES, Permission.class, "foo", function);
+        policyEngine.registerFunction("test-scope", Permission.class, "foo", function);
 
         var result = policyEngine.validate(policy);
 
@@ -252,7 +251,7 @@ class PolicyEngineImplValidationTest {
 
         for (var key : keys) {
             bindingRegistry.bind(key, ALL_SCOPES);
-            policyEngine.registerFunction(ALL_SCOPES, ruleClass, key, (op, rv, duty, ctx) -> true);
+            policyEngine.registerFunction("test-scope", ruleClass, key, (op, rv, duty, ctx) -> true);
         }
 
 

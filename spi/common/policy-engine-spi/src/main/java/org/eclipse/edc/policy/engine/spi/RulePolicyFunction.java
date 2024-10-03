@@ -18,16 +18,13 @@ import org.eclipse.edc.policy.model.Rule;
 
 /**
  * Invoked during policy evaluation to examine a rule node.
- *
- * @deprecated use {@link RulePolicyFunction}
  */
-@Deprecated(since = "0.10.0")
-public interface RuleFunction<R extends Rule> {
+public interface RulePolicyFunction<R extends Rule, C extends PolicyContext> {
 
     /**
      * Performs the rule evaluation.
      */
-    boolean evaluate(R rule, PolicyContext context);
+    boolean evaluate(R rule, C context);
     
     /**
      * Returns the name of the function

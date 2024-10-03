@@ -23,7 +23,6 @@ import org.eclipse.edc.connector.policy.monitor.spi.PolicyMonitorManager;
 import org.eclipse.edc.connector.policy.monitor.spi.PolicyMonitorStore;
 import org.eclipse.edc.connector.policy.monitor.subscriber.StartMonitoring;
 import org.eclipse.edc.policy.engine.spi.PolicyEngine;
-import org.eclipse.edc.policy.engine.spi.PolicyScope;
 import org.eclipse.edc.policy.engine.spi.RuleBindingRegistry;
 import org.eclipse.edc.policy.model.Permission;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
@@ -57,7 +56,6 @@ public class PolicyMonitorExtension implements ServiceExtension {
     @Setting(value = "the batch size in the policy monitor state machine. Default value " + DEFAULT_BATCH_SIZE, type = "int")
     private static final String POLICY_MONITOR_BATCH_SIZE = "edc.policy.monitor.state-machine.batch-size";
 
-    @PolicyScope
     public static final String POLICY_MONITOR_SCOPE = "policy.monitor";
 
     @Inject

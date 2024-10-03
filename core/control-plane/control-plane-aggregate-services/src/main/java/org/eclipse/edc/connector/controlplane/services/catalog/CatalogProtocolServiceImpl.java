@@ -21,7 +21,6 @@ import org.eclipse.edc.connector.controlplane.catalog.spi.Dataset;
 import org.eclipse.edc.connector.controlplane.catalog.spi.DatasetResolver;
 import org.eclipse.edc.connector.controlplane.services.spi.catalog.CatalogProtocolService;
 import org.eclipse.edc.connector.controlplane.services.spi.protocol.ProtocolTokenValidator;
-import org.eclipse.edc.policy.engine.spi.PolicyScope;
 import org.eclipse.edc.spi.iam.TokenRepresentation;
 import org.eclipse.edc.spi.result.ServiceResult;
 import org.eclipse.edc.transaction.spi.TransactionContext;
@@ -31,7 +30,6 @@ import static java.lang.String.format;
 
 public class CatalogProtocolServiceImpl implements CatalogProtocolService {
 
-    @PolicyScope
     public static final String CATALOGING_REQUEST_SCOPE = "request.catalog";
 
     private final DatasetResolver datasetResolver;

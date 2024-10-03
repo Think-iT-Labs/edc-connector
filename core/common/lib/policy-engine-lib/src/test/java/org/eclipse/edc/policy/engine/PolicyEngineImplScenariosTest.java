@@ -74,7 +74,7 @@ public class PolicyEngineImplScenariosTest {
     @Test
     void verifyNoUse() {
         bindingRegistry.bind(USE_ACTION.getType(), ALL_SCOPES);
-        policyEngine.registerFunction(ALL_SCOPES, Prohibition.class, (rule, ctx) -> rule.getAction().getType().equals(USE_ACTION.getType()));
+        policyEngine.registerFunction(TEST_SCOPE, Prohibition.class, (rule, ctx) -> rule.getAction().getType().equals(USE_ACTION.getType()));
         var prohibition = Prohibition.Builder.newInstance().action(USE_ACTION).build();
         var policy = Policy.Builder.newInstance().prohibition(prohibition).build();
         var context = PolicyContextImpl.Builder.newInstance().build();
@@ -93,7 +93,7 @@ public class PolicyEngineImplScenariosTest {
         bindingRegistry.bind(ABS_SPATIAL_CONSTRAINT, ALL_SCOPES);
 
         // function that verifies the EU region
-        policyEngine.registerFunction(ALL_SCOPES, Permission.class, ABS_SPATIAL_CONSTRAINT, (operator, value, permission, context) -> {
+        policyEngine.registerFunction(TEST_SCOPE, Permission.class, ABS_SPATIAL_CONSTRAINT, (operator, value, permission, context) -> {
             var claims = context.getContextData(ParticipantAgent.class).getClaims();
             return claims.containsKey("region") && claims.get("region").equals(value);
         });
@@ -122,7 +122,7 @@ public class PolicyEngineImplScenariosTest {
      */
     @Test
     void verifyConnectorUse() {
-        policyEngine.registerFunction(ALL_SCOPES, Permission.class, CONNECTOR_CONSTRAINT, (operator, value, permission, context) -> {
+        policyEngine.registerFunction(TEST_SCOPE, Permission.class, CONNECTOR_CONSTRAINT, (operator, value, permission, context) -> {
             if (!(value instanceof List)) {
                 context.reportProblem("Unsupported right operand type: " + value.getClass().getName());
                 return false;
