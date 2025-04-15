@@ -20,6 +20,7 @@ package org.eclipse.edc.connector.controlplane.transfer.process;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.eclipse.edc.connector.controlplane.asset.spi.index.DataAddressResolver;
 import org.eclipse.edc.connector.controlplane.policy.spi.store.PolicyArchive;
+import org.eclipse.edc.connector.controlplane.transfer.process.state.InitialStateProcess;
 import org.eclipse.edc.connector.controlplane.transfer.provision.DeprovisionResponsesHandler;
 import org.eclipse.edc.connector.controlplane.transfer.provision.ProvisionResponsesHandler;
 import org.eclipse.edc.connector.controlplane.transfer.provision.ResponsesHandler;
@@ -32,7 +33,6 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ProvisionMa
 import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ResourceManifestGenerator;
 import org.eclipse.edc.connector.controlplane.transfer.spi.store.TransferProcessStore;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.DataFlowResponse;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceManifest;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcess;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferRequest;
@@ -171,8 +171,9 @@ public class TransferProcessManagerImpl extends AbstractStateEntityManager<Trans
 
     @Override
     protected StateMachineManager.Builder configureStateMachineManager(StateMachineManager.Builder builder) {
+        var stateManager = new TransferProcessStateManager(store, monitor, observable);
         return builder
-                .processor(processTransfersInState(INITIAL, this::processInitial))
+                .processor(processTransfersInState(INITIAL, new InitialStateProcess(stateManager, policyArchive, dataFlowManager, manifestGenerator, addressResolver, vault)))
                 .processor(processTransfersInState(PROVISIONING, this::processProvisioning))
                 .processor(processTransfersInState(PROVISIONED, this::processProvisioned))
                 .processor(processConsumerTransfersInState(REQUESTING, this::processRequesting))
@@ -186,72 +187,6 @@ public class TransferProcessManagerImpl extends AbstractStateEntityManager<Trans
                 .processor(processTransfersInState(TERMINATING, this::processTerminating))
                 .processor(processTransfersInState(TERMINATING_REQUESTED, this::processTerminating))
                 .processor(processTransfersInState(DEPROVISIONING, this::processDeprovisioning));
-    }
-
-    /**
-     * Process INITIAL transfer<p> set it to PROVISIONING
-     *
-     * @param process the INITIAL transfer fetched
-     * @return if the transfer has been processed or not
-     */
-    @WithSpan
-    private boolean processInitial(TransferProcess process) {
-        var contractId = process.getContractId();
-        var policy = policyArchive.findPolicyForContract(contractId);
-
-        if (policy == null) {
-            transitionToTerminated(process, "Policy not found for contract: " + contractId);
-            return true;
-        }
-
-        ResourceManifest manifest;
-        if (process.getType() == CONSUMER) {
-            var provisioning = dataFlowManager.provision(process, policy);
-            if (provisioning.succeeded()) {
-                var response = provisioning.getContent();
-                if (response.isProvisioning()) {
-                    process.setDataPlaneId(response.getDataPlaneId());
-                    process.transitionProvisioningRequested();
-                } else {
-                    process.setDataPlaneId(null);
-                    process.transitionRequesting();
-                }
-
-                update(process);
-                return true;
-            }
-
-            var manifestResult = manifestGenerator.generateConsumerResourceManifest(process, policy);
-            if (manifestResult.failed()) {
-                transitionToTerminated(process, format("Resource manifest for process %s cannot be modified to fulfil policy. %s", process.getId(), manifestResult.getFailureMessages()));
-                return true;
-            }
-            manifest = manifestResult.getContent();
-        } else {
-            var assetId = process.getAssetId();
-            var dataAddress = addressResolver.resolveForAsset(assetId);
-            if (dataAddress == null) {
-                transitionToTerminating(process, "Asset not found: " + assetId);
-                return true;
-            }
-            // default the content address to the asset address; this may be overridden during provisioning
-            process.setContentDataAddress(dataAddress);
-
-            var dataDestination = process.getDataDestination();
-            if (dataDestination != null) {
-                var secret = dataDestination.getStringProperty(EDC_DATA_ADDRESS_SECRET);
-                if (secret != null) {
-                    vault.storeSecret(dataDestination.getKeyName(), secret);
-                }
-            }
-
-            manifest = manifestGenerator.generateProviderResourceManifest(process, dataAddress, policy);
-        }
-
-        process.transitionProvisioning(manifest);
-        observable.invokeForEach(l -> l.preProvisioning(process));
-        update(process);
-        return true;
     }
 
     /**
