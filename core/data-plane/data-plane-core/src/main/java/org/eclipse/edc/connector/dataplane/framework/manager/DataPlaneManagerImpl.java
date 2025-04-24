@@ -187,15 +187,19 @@ public class DataPlaneManagerImpl extends AbstractStateEntityManager<DataFlow, D
         var now = clock.millis();
         List<DataFlow> toBeRestarted;
         do {
+            monitor.debug("GET LEASED FLOWS");
             toBeRestarted = store.nextNotLeased(batchSize,
                     hasState(STARTED.code()),
                     new Criterion("stateTimestamp", "<", now),
                     new Criterion("transferType.flowType", "=", PUSH.toString())
             );
+            monitor.debug("WILL RESTART %s FLOWS".formatted(toBeRestarted.size()));
 
             toBeRestarted.forEach(this::restartFlow);
+            monitor.debug("IS toBeRestarted EMPTY? %s".formatted(toBeRestarted.isEmpty()));
         } while (!toBeRestarted.isEmpty());
 
+        monitor.debug("RESTART FLOWS FINISHED!");
         return StatusResult.success();
     }
     
@@ -227,6 +231,7 @@ public class DataPlaneManagerImpl extends AbstractStateEntityManager<DataFlow, D
         monitor.debug("Restarting interrupted flow %s, it was owned by runtime %s".formatted(dataFlow.getId(), dataFlow.getRuntimeId()));
         dataFlow.transitToReceived();
         processReceived(dataFlow);
+        monitor.debug("FLOW %s RESTARTED CORRECTLY!".formatted(dataFlow.getId()));
         return true;
     }
 
