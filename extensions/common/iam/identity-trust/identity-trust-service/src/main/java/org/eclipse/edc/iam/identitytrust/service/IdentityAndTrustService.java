@@ -127,24 +127,21 @@ public class IdentityAndTrustService implements IdentityService {
     }
 
     @Override
-    public Result<ClaimToken> verifyJwtToken(TokenRepresentation tokenRepresentation, VerificationContext context) {
-        // strip out the "Bearer " prefix
+    public Result<ClaimToken> authenticate(TokenRepresentation tokenRepresentation) {
         var token = tokenRepresentation.getToken();
         if (!token.startsWith("Bearer ")) {
             return failure("Token is not a Bearer token");
         }
-        token = token.replace("Bearer ", "").trim();
-        tokenRepresentation = tokenRepresentation.toBuilder().token(token).build();
-        var claimTokenResult = tokenValidationAction.apply(tokenRepresentation);
+        tokenRepresentation = tokenRepresentation.toBuilder()
+                .token(token.replace("Bearer ", "").trim())
+                .build();
+        return tokenValidationAction.apply(tokenRepresentation);
+    }
 
-        if (claimTokenResult.failed()) {
-            return claimTokenResult.mapEmpty();
-        }
-
-        // create our own SI token, to request the VPs
-        var claimToken = claimTokenResult.getContent();
-        var accessToken = claimToken.getStringClaim(PRESENTATION_TOKEN_CLAIM);
-        var issuer = claimToken.getStringClaim(ISSUER);
+    @Override
+    public Result<ClaimToken> authorize(ClaimToken authenticatedToken, VerificationContext context) {
+        var accessToken = authenticatedToken.getStringClaim(PRESENTATION_TOKEN_CLAIM);
+        var issuer = authenticatedToken.getStringClaim(ISSUER);
 
         Map<String, Object> siTokenClaims = Map.of(PRESENTATION_TOKEN_CLAIM, accessToken,
                 ISSUED_AT, Instant.now().getEpochSecond(),

@@ -88,8 +88,13 @@ public class Oauth2ServiceImpl implements IdentityService {
     }
 
     @Override
-    public Result<ClaimToken> verifyJwtToken(TokenRepresentation tokenRepresentation, VerificationContext context) {
+    public Result<ClaimToken> authenticate(TokenRepresentation tokenRepresentation) {
         return tokenValidationService.validate(tokenRepresentation, publicKeyResolver, tokenValidationRuleRegistry.getRules(OAUTH2_TOKEN_CONTEXT));
+    }
+
+    @Override
+    public Result<ClaimToken> authorize(ClaimToken authenticatedToken, VerificationContext context) {
+        return Result.success(authenticatedToken);
     }
 
     @NotNull

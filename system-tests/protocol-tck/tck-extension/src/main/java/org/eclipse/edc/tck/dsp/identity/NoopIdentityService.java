@@ -33,7 +33,13 @@ public class NoopIdentityService implements IdentityService {
     }
 
     @Override
-    public Result<ClaimToken> verifyJwtToken(TokenRepresentation tokenRepresentation, VerificationContext verificationContext) {
+    public Result<ClaimToken> authenticate(TokenRepresentation tokenRepresentation) {
         return Result.success(ClaimToken.Builder.newInstance().claim("client_id", TCK_PARTICIPANT_ID).build());
     }
+
+    @Override
+    public Result<ClaimToken> authorize(ClaimToken authenticatedToken, VerificationContext context) {
+        return Result.success(authenticatedToken);
+    }
+
 }

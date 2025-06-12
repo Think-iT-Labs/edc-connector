@@ -50,7 +50,7 @@ public class MockIdentityService implements IdentityService {
     }
 
     @Override
-    public Result<ClaimToken> verifyJwtToken(TokenRepresentation tokenRepresentation, VerificationContext context) {
+    public Result<ClaimToken> authenticate(TokenRepresentation tokenRepresentation) {
         var token = typeManager.readValue(tokenRepresentation.getToken(), MockToken.class);
 
         if (faultyClientId.equals(token.clientId)) {
@@ -61,6 +61,11 @@ public class MockIdentityService implements IdentityService {
                 .claim("region", token.region)
                 .claim("client_id", token.clientId)
                 .build());
+    }
+
+    @Override
+    public Result<ClaimToken> authorize(ClaimToken authenticatedToken, VerificationContext context) {
+        return Result.success(authenticatedToken);
     }
 
     private static class MockToken {

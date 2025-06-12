@@ -35,12 +35,35 @@ public interface IdentityService {
     Result<TokenRepresentation> obtainClientCredentials(TokenParameters parameters);
 
     /**
+     * Authenticate
+     *
+     * @param tokenRepresentation A token representation including the token to verify.
+     * @return Result of the validation.
+     */
+    Result<ClaimToken> authenticate(TokenRepresentation tokenRepresentation);
+
+    /**
+     * Authorize
+     *
+     * @param authenticatedToken A token representation including the token to verify.
+     * @param context             The {@link  VerificationContext}.
+     *
+     * @return Result of the validation.
+     */
+    Result<ClaimToken> authorize(ClaimToken authenticatedToken, VerificationContext context);
+
+    /**
      * Verifies a JWT bearer token.
      *
      * @param tokenRepresentation A token representation including the token to verify.
      * @param context             The {@link  VerificationContext}.
      * @return Result of the validation.
+     * @deprecated use authenticate and authorize
      */
-    Result<ClaimToken> verifyJwtToken(TokenRepresentation tokenRepresentation, VerificationContext context);
+    @Deprecated(since = "0.14.0")
+    default Result<ClaimToken> verifyJwtToken(TokenRepresentation tokenRepresentation, VerificationContext context) {
+        return authenticate(tokenRepresentation)
+                .compose(authenticated -> authorize(authenticated, context));
+    }
 
 }
