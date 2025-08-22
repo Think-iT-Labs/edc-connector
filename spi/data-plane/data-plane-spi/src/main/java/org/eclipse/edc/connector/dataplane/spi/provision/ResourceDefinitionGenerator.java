@@ -22,11 +22,20 @@ import org.eclipse.edc.connector.dataplane.spi.DataFlow;
 public interface ResourceDefinitionGenerator {
 
     /**
-     * Return the supported DataAddress type.
+     * Return the supported DataAddress type. It could return null if the generator is agnostic about source/destination
+     * type.
      *
      * @return supported DataAddress type.
      */
     String supportedType();
+
+    /**
+     * Tell if the generator should generate a resource for the passed data flow
+     *
+     * @param dataFlow the data flow.
+     * @return true if the resource should be generated, false otherwise.
+     */
+    boolean shouldGenerateFor(DataFlow dataFlow);
 
     /**
      * Generates a resource definition. If no resource definition is generated, return null.

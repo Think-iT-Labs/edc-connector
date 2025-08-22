@@ -173,6 +173,11 @@ public class ProvisioningTransferConsumerEndToEndTest {
             }
 
             @Override
+            public boolean shouldGenerateFor(DataFlow dataFlow) {
+                return "HttpData".equals(dataFlow.getDestination().getType());
+            }
+
+            @Override
             public ProvisionResource generate(DataFlow dataFlow) {
                 return ProvisionResource.Builder
                         .newInstance()
@@ -189,6 +194,11 @@ public class ProvisioningTransferConsumerEndToEndTest {
             @Override
             public String supportedType() {
                 return "HttpData";
+            }
+
+            @Override
+            public boolean shouldGenerateFor(DataFlow dataFlow) {
+                return "CustomProvisionType".equals(dataFlow.getDestination().getType());
             }
 
             @Override

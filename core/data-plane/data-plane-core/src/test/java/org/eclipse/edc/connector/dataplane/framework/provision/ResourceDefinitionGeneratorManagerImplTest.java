@@ -19,14 +19,10 @@ import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
 import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGenerator;
 import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGeneratorManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class ResourceDefinitionGeneratorManagerImplTest {
 
@@ -35,28 +31,24 @@ class ResourceDefinitionGeneratorManagerImplTest {
     @Nested
     class Consumer {
 
-        private final ResourceDefinitionGenerator supportedGenerator = mock();
-
-        @BeforeEach
-        void setUp() {
-            when(supportedGenerator.supportedType()).thenReturn("supportedType");
-            when(supportedGenerator.generate(any())).thenReturn(new ProvisionResource());
-
-            manager.registerConsumerGenerator(supportedGenerator);
-        }
-
         @Test
         void generate_shouldGenerateResources() {
-            var destination = DataAddress.Builder.newInstance().type("supportedType").build();
+            var expectedProvisionResource = new ProvisionResource();
+            manager.registerConsumerGenerator(generatorThatShouldGenerate(true, expectedProvisionResource));
+            manager.registerConsumerGenerator(generatorThatShouldGenerate(false, new ProvisionResource()));
+            var destination = DataAddress.Builder.newInstance().type("any").build();
             var dataFlow = DataFlow.Builder.newInstance().destination(destination).build();
 
             var definitions = manager.generateConsumerResourceDefinition(dataFlow);
 
-            assertThat(definitions).hasSize(1);
+            assertThat(definitions).hasSize(1).containsExactly(expectedProvisionResource);
         }
 
         @Test
         void destinationTypes_shouldReturnRegisteredDestinationTypes() {
+            manager.registerConsumerGenerator(generatorWithSupportedType("supportedType"));
+            manager.registerConsumerGenerator(generatorWithSupportedType(null));
+
             var types = manager.destinationTypes();
 
             assertThat(types).containsOnly("supportedType");
@@ -66,28 +58,24 @@ class ResourceDefinitionGeneratorManagerImplTest {
     @Nested
     class Provider {
 
-        private final ResourceDefinitionGenerator supportedGenerator = mock();
-
-        @BeforeEach
-        void setUp() {
-            when(supportedGenerator.supportedType()).thenReturn("supportedType");
-            when(supportedGenerator.generate(any())).thenReturn(new ProvisionResource());
-
-            manager.registerProviderGenerator(supportedGenerator);
-        }
-
         @Test
         void generate_shouldGenerateResources() {
+            var expectedProvisionResource = new ProvisionResource();
+            manager.registerProviderGenerator(generatorThatShouldGenerate(true, expectedProvisionResource));
+            manager.registerProviderGenerator(generatorThatShouldGenerate(false, new ProvisionResource()));
             var source = DataAddress.Builder.newInstance().type("supportedType").build();
             var dataFlow = DataFlow.Builder.newInstance().source(source).build();
 
-            var definitions = manager.generateProviderResourceDefinition(dataFlow);
+            var resources = manager.generateProviderResourceDefinition(dataFlow);
 
-            assertThat(definitions).hasSize(1);
+            assertThat(resources).hasSize(1).containsExactly(expectedProvisionResource);
         }
 
         @Test
         void sourceTypes_shouldReturnRegisteredSourceTypes() {
+            manager.registerProviderGenerator(generatorWithSupportedType("supportedType"));
+            manager.registerProviderGenerator(generatorWithSupportedType(null));
+
             var types = manager.sourceTypes();
 
             assertThat(types).containsOnly("supportedType");
@@ -95,4 +83,41 @@ class ResourceDefinitionGeneratorManagerImplTest {
 
     }
 
+    private ResourceDefinitionGenerator generatorThatShouldGenerate(boolean shouldGenerate, ProvisionResource provisionResource) {
+        return new ResourceDefinitionGenerator() {
+            @Override
+            public String supportedType() {
+                return "";
+            }
+
+            @Override
+            public boolean shouldGenerateFor(DataFlow dataFlow) {
+                return shouldGenerate;
+            }
+
+            @Override
+            public ProvisionResource generate(DataFlow dataFlow) {
+                return provisionResource;
+            }
+        };
+    }
+
+    private ResourceDefinitionGenerator generatorWithSupportedType(String sourceType) {
+        return new ResourceDefinitionGenerator() {
+            @Override
+            public String supportedType() {
+                return sourceType;
+            }
+
+            @Override
+            public boolean shouldGenerateFor(DataFlow dataFlow) {
+                return false;
+            }
+
+            @Override
+            public ProvisionResource generate(DataFlow dataFlow) {
+                return null;
+            }
+        };
+    }
 }

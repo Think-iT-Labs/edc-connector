@@ -14,6 +14,9 @@
 
 package org.eclipse.edc.connector.dataplane.iam.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.eclipse.edc.connector.dataplane.iam.provision.DataPlaneIam;
 import org.eclipse.edc.connector.dataplane.spi.DataFlow;
 import org.eclipse.edc.connector.dataplane.spi.Endpoint;
 import org.eclipse.edc.connector.dataplane.spi.iam.DataPlaneAccessControlService;
@@ -25,10 +28,10 @@ import org.eclipse.edc.spi.iam.TokenParameters;
 import org.eclipse.edc.spi.iam.TokenRepresentation;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.result.ServiceResult;
+import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 
 import java.time.Clock;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,55 +39,50 @@ import static org.eclipse.edc.spi.constants.CoreConstants.EDC_NAMESPACE;
 import static org.eclipse.edc.spi.result.Result.success;
 
 public class DataPlaneAuthorizationServiceImpl implements DataPlaneAuthorizationService {
-    public static final String PROPERTY_AGREEMENT_ID = "agreement_id";
-    public static final String PROPERTY_ASSET_ID = "asset_id";
-    public static final String PROPERTY_PROCESS_ID = "process_id";
-    public static final String PROPERTY_FLOW_TYPE = "flow_type";
-    private static final String PROPERTY_PARTICIPANT_ID = "participant_id";
+
     private final DataPlaneAccessTokenService accessTokenService;
     private final PublicEndpointGeneratorService endpointGenerator;
     private final DataPlaneAccessControlService accessControlService;
     private final String ownParticipantId;
     private final Clock clock;
+    private final Vault vault;
+    private final ObjectMapper mapper;
 
     public DataPlaneAuthorizationServiceImpl(DataPlaneAccessTokenService accessTokenService,
                                              PublicEndpointGeneratorService endpointGenerator,
                                              DataPlaneAccessControlService accessControlService,
                                              String ownParticipantId,
-                                             Clock clock) {
+                                             Clock clock, Vault vault, ObjectMapper mapper) {
         this.accessTokenService = accessTokenService;
         this.endpointGenerator = endpointGenerator;
         this.accessControlService = accessControlService;
         this.ownParticipantId = ownParticipantId;
         this.clock = clock;
+        this.vault = vault;
+        this.mapper = mapper;
     }
 
     @Override
     public Result<DataAddress> createEndpointDataReference(DataFlow dataFlow) {
+        var frontChannelSecretKey = DataPlaneIam.SECRET_PREFIX + dataFlow.getId();
+        var frontChannelSecret = vault.resolveSecret(frontChannelSecretKey);
+        if (frontChannelSecret == null) {
+            return Result.failure("Cannot create EDR because the secret " + frontChannelSecretKey + " is not available");
+        }
 
-        var additionalProperties = new HashMap<String, Object>(dataFlow.getProperties());
-        additionalProperties.put(PROPERTY_AGREEMENT_ID, dataFlow.getAgreementId());
-        additionalProperties.put(PROPERTY_ASSET_ID, dataFlow.getAssetId());
-        additionalProperties.put(PROPERTY_PROCESS_ID, dataFlow.getId());
-        additionalProperties.put(PROPERTY_FLOW_TYPE, dataFlow.getTransferType().flowType().toString());
-        additionalProperties.put(PROPERTY_PARTICIPANT_ID, dataFlow.getParticipantId());
-        var tokenParams = createTokenParams(dataFlow);
         var sourceDataAddress = dataFlow.getActualSource();
 
-
-        // create the "front-channel" data address
         var dataAddressBuilder = endpointGenerator.generateFor(dataFlow.getTransferType().destinationType(), sourceDataAddress)
-                .compose(ep -> createSecureEndpoint(ep, tokenParams, additionalProperties, sourceDataAddress))
-                .compose(se -> createDataAddress(se.tokenRepresentation(), se.endpoint()));
+                .compose(ep -> deserialize(frontChannelSecret)
+                        .compose(token -> createDataAddress(token, ep)));
 
-        // "decorate" the data address with response channel properties
-        var responseChannelType = dataFlow.getTransferType().responseChannelType();
-        if (responseChannelType != null) {
-            var responseChannel = sourceDataAddress.getResponseChannel();
-            var responseChannelTokenParams = createTokenParams(dataFlow);
+        var responseChannelSecretKey = DataPlaneIam.SECRET_RESPONSE_CHANNEL_PREFIX + dataFlow.getId();
+        var responseChannelSecret = vault.resolveSecret(responseChannelSecretKey);
+        if (responseChannelSecret != null) {
+            var responseChannelType = dataFlow.getSource().getResponseChannel().getType();
             dataAddressBuilder = dataAddressBuilder.compose(builder -> endpointGenerator.generateResponseFor(responseChannelType)
-                    .compose(ep -> createSecureEndpoint(ep, responseChannelTokenParams, additionalProperties, responseChannel))
-                    .compose(endpoint -> addResponseChannel(builder, endpoint.tokenRepresentation(), endpoint.endpoint())));
+                    .compose(endpoint -> deserialize(responseChannelSecret)
+                            .compose(token -> addResponseChannel(builder, token, endpoint))));
         }
 
         return dataAddressBuilder.map(DataAddress.Builder::build);
@@ -103,9 +101,13 @@ public class DataPlaneAuthorizationServiceImpl implements DataPlaneAuthorization
         return accessTokenService.revoke(transferProcessId, reason);
     }
 
-    private Result<SecureEndpoint> createSecureEndpoint(Endpoint endpoint, TokenParameters tokenParameters, Map<String, Object> additionalProperties, DataAddress sourceDataAddress) {
-        return accessTokenService.obtainToken(tokenParameters, sourceDataAddress, additionalProperties)
-                .map(tr -> new SecureEndpoint(endpoint, tr));
+    private Result<TokenRepresentation> deserialize(String tokenRepresentationJson) {
+        try {
+            var tokenRepresentation = mapper.readValue(tokenRepresentationJson, TokenRepresentation.class);
+            return Result.success(tokenRepresentation);
+        } catch (JsonProcessingException e) {
+            return Result.failure("Cannot deserialize TokenRepresentation: " + e.getMessage());
+        }
     }
 
     private Result<DataAddress.Builder> createDataAddress(TokenRepresentation tokenRepresentation, Endpoint publicEndpoint) {
@@ -120,16 +122,12 @@ public class DataPlaneAuthorizationServiceImpl implements DataPlaneAuthorization
     }
 
     private Result<DataAddress.Builder> addResponseChannel(DataAddress.Builder builder, TokenRepresentation tokenRepresentation, Endpoint returnChannelEndpoint) {
-        var map = new HashMap<String, String>() {
-            {
-                put(EDC_NAMESPACE + "responseChannel-endpoint", returnChannelEndpoint.endpoint());
-                put(EDC_NAMESPACE + "responseChannel-endpointType", returnChannelEndpoint.endpointType());
-                put(EDC_NAMESPACE + "responseChannel-authorization", tokenRepresentation.getToken());
-            }
-        };
-        tokenRepresentation.getAdditional().forEach((k, v) -> map.put(k.replace(EDC_NAMESPACE, EDC_NAMESPACE + "responseChannel-"), v.toString()));
+        builder
+                .property(EDC_NAMESPACE + "responseChannel-endpoint", returnChannelEndpoint.endpoint())
+                .property(EDC_NAMESPACE + "responseChannel-endpointType", returnChannelEndpoint.endpointType())
+                .property(EDC_NAMESPACE + "responseChannel-authorization", tokenRepresentation.getToken());
 
-        map.forEach(builder::property);
+        tokenRepresentation.getAdditional().forEach((k, v) -> builder.property(k.replace(EDC_NAMESPACE, EDC_NAMESPACE + "responseChannel-"), v.toString()));
 
         return Result.success(builder);
 

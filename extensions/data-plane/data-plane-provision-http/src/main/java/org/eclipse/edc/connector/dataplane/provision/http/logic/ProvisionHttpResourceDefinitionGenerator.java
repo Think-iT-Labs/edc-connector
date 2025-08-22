@@ -28,6 +28,11 @@ public class ProvisionHttpResourceDefinitionGenerator implements ResourceDefinit
     }
 
     @Override
+    public boolean shouldGenerateFor(DataFlow dataFlow) {
+        return PROVISION_HTTP_TYPE.equals(dataFlow.getSource().getType());
+    }
+
+    @Override
     public ProvisionResource generate(DataFlow dataFlow) {
         var baseUrl = dataFlow.getSource().getProperty("baseUrl");
         if (baseUrl == null) {

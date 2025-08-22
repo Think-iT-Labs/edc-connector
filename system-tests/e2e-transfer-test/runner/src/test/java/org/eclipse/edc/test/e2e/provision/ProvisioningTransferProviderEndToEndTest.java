@@ -175,6 +175,11 @@ public class ProvisioningTransferProviderEndToEndTest {
             }
 
             @Override
+            public boolean shouldGenerateFor(DataFlow dataFlow) {
+                return "CustomProvisionType".equals(dataFlow.getSource().getType());
+            }
+
+            @Override
             public ProvisionResource generate(DataFlow dataFlow) {
                 return ProvisionResource.Builder
                         .newInstance()
@@ -191,6 +196,11 @@ public class ProvisioningTransferProviderEndToEndTest {
             @Override
             public String supportedType() {
                 return "CustomProvisionType";
+            }
+
+            @Override
+            public boolean shouldGenerateFor(DataFlow dataFlow) {
+                return "CustomProvisionType".equals(dataFlow.getSource().getType());
             }
 
             @Override

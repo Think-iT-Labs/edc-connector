@@ -27,6 +27,7 @@ public class ProvisionedResource {
     private String flowId;
     private DataAddress dataAddress;
     private boolean pending = false;
+    private String secretKey;
 
     public DataAddress getDataAddress() {
         return dataAddress;
@@ -42,6 +43,10 @@ public class ProvisionedResource {
 
     public boolean isPending() {
         return pending;
+    }
+
+    public String getSecretKey() {
+        return secretKey;
     }
 
     public static class Builder {
@@ -87,6 +92,11 @@ public class ProvisionedResource {
 
         public Builder id(String id) {
             resource.id = id;
+            return this;
+        }
+
+        public Builder secretKey(String secretKey) {
+            resource.secretKey = secretKey;
             return this;
         }
     }

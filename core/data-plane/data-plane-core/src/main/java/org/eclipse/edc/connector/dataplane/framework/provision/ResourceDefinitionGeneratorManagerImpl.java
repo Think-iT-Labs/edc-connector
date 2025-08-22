@@ -44,7 +44,7 @@ public class ResourceDefinitionGeneratorManagerImpl implements ResourceDefinitio
     @Override
     public List<ProvisionResource> generateConsumerResourceDefinition(DataFlow dataFlow) {
         return consumerGenerators.stream()
-                .filter(g -> g.supportedType().equals(dataFlow.getDestination().getType()))
+                .filter(g -> g.shouldGenerateFor(dataFlow))
                 .map(g -> g.generate(dataFlow))
                 .filter(Objects::nonNull)
                 .toList();
@@ -53,7 +53,7 @@ public class ResourceDefinitionGeneratorManagerImpl implements ResourceDefinitio
     @Override
     public List<ProvisionResource> generateProviderResourceDefinition(DataFlow dataFlow) {
         return providerGenerators.stream()
-                .filter(g -> g.supportedType().equals(dataFlow.getSource().getType()))
+                .filter(g -> g.shouldGenerateFor(dataFlow))
                 .map(g -> g.generate(dataFlow))
                 .filter(Objects::nonNull)
                 .toList();
@@ -61,11 +61,11 @@ public class ResourceDefinitionGeneratorManagerImpl implements ResourceDefinitio
 
     @Override
     public Set<String> sourceTypes() {
-        return providerGenerators.stream().map(ResourceDefinitionGenerator::supportedType).collect(toSet());
+        return providerGenerators.stream().map(ResourceDefinitionGenerator::supportedType).filter(Objects::nonNull).collect(toSet());
     }
 
     @Override
     public Set<String> destinationTypes() {
-        return consumerGenerators.stream().map(ResourceDefinitionGenerator::supportedType).collect(toSet());
+        return consumerGenerators.stream().map(ResourceDefinitionGenerator::supportedType).filter(Objects::nonNull).collect(toSet());
     }
 }
