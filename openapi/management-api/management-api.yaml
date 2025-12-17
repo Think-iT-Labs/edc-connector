@@ -3425,7 +3425,6 @@ components:
       required:
       - '@context'
       - '@type'
-      - dataAddress
       - properties
       type: object
       properties:
