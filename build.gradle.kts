@@ -37,7 +37,9 @@ val edcBuildId = libs.plugins.edc.build.get().pluginId
 
 allprojects {
     apply(plugin = edcBuildId)
-    // Temporarily disable autodoc plugin due to version mismatch
+    // Temporarily disable autodoc plugin because it requires autodoc-processor:0.16.0-SNAPSHOT
+    // which doesn't exist yet. Can be re-enabled once autodoc-processor:0.16.0-SNAPSHOT is published
+    // to the snapshot repository or when the project version is updated to match available artifacts.
     // apply(plugin = "org.eclipse.edc.autodoc")
 
     configure<org.eclipse.edc.plugins.edcbuild.extensions.BuildExtension> {
@@ -53,6 +55,9 @@ allprojects {
     }
 
     afterEvaluate {
+        // Override repositories to ensure correct snapshot repository is used
+        // The edc-build plugin version 1.1.5 may configure the wrong URL, so we need to
+        // explicitly set the correct one after plugin configuration is complete
         repositories.clear()
         repositories {
             mavenCentral()
