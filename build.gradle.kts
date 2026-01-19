@@ -22,9 +22,14 @@ val edcScmUrl: String by project
 val edcScmConnection: String by project
 
 buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+        }
+    }
     dependencies {
-        val version: String by project
-        classpath("org.eclipse.edc.autodoc:org.eclipse.edc.autodoc.gradle.plugin:$version")
+        classpath("org.eclipse.edc.autodoc:org.eclipse.edc.autodoc.gradle.plugin:0.15.1")
     }
 }
 
@@ -32,7 +37,8 @@ val edcBuildId = libs.plugins.edc.build.get().pluginId
 
 allprojects {
     apply(plugin = edcBuildId)
-    apply(plugin = "org.eclipse.edc.autodoc")
+    // Temporarily disable autodoc plugin due to version mismatch
+    // apply(plugin = "org.eclipse.edc.autodoc")
 
     configure<org.eclipse.edc.plugins.edcbuild.extensions.BuildExtension> {
         pom {
@@ -44,6 +50,16 @@ allprojects {
     configure<CheckstyleExtension> {
         configFile = rootProject.file("resources/edc-checkstyle-config.xml")
         configDirectory.set(rootProject.file("resources"))
+    }
+
+    afterEvaluate {
+        repositories.clear()
+        repositories {
+            mavenCentral()
+            maven {
+                url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+            }
+        }
     }
 
 }

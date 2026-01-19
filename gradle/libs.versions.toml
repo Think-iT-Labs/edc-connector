@@ -53,7 +53,7 @@ bouncyCastle-bcpkixJdk18on = { module = "org.bouncycastle:bcpkix-jdk18on", versi
 bouncyCastle-bcprovJdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle-jdk18on" }
 dataplane-sdk = { module = "org.eclipse.dataplane-core:dataplane-sdk", version.ref = "dataplane-sdk" }
 dnsOverHttps = { module = "com.squareup.okhttp3:okhttp-dnsoverhttps", version.ref = "okhttp" }
-edc-runtime-metamodel = { module = "org.eclipse.edc:runtime-metamodel", version.ref = "edc" }
+edc-runtime-metamodel = { module = "org.eclipse.edc:runtime-metamodel", version = "0.15.1" }
 failsafe-core = { module = "dev.failsafe:failsafe", version.ref = "failsafe" }
 failsafe-okhttp = { module = "dev.failsafe:failsafe-okhttp", version.ref = "failsafe" }
 h2 = { module = "com.h2database:h2", version.ref = "h2" }
@@ -130,6 +130,6 @@ jackson = ["jackson-annotations", "jackson-databind"]
 jersey-core = ["jersey-server", "jersey-common", "jersey-jackson", "jersey-multipart", "jersey-inject", "jersey-servlet", "jersey-servletcore"]
 
 [plugins]
-edc-build = { id = "org.eclipse.edc.edc-build", version = "1.1.2" }
+edc-build = { id = "org.eclipse.edc.edc-build", version = "1.1.5" }
 shadow = { id = "com.gradleup.shadow", version = "9.3.1" }
 swagger = { id = "io.swagger.core.v3.swagger-gradle-plugin", version.ref = "swagger" }
