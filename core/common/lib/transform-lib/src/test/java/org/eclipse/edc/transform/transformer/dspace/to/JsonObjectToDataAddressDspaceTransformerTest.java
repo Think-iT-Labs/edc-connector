@@ -20,6 +20,7 @@ import jakarta.json.JsonObjectBuilder;
 import org.eclipse.edc.jsonld.spi.Namespaces;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.transform.spi.TransformerContext;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -46,6 +47,7 @@ class JsonObjectToDataAddressDspaceTransformerTest {
     private final JsonObjectToDataAddressDspaceTransformer transformer = new JsonObjectToDataAddressDspaceTransformer(DSP_NAMESPACE_V_2025_1);
 
     @Test
+    @Disabled("Test requires external network access to https://w3id.org/dspace/2025/1/context.jsonld which may not be available")
     void transform() {
         var nestedResponseChannel = responseChannelAddress();
         var jsonObj = jsonFactory.createObjectBuilder()
