@@ -21,18 +21,18 @@ plugins {
 val edcScmUrl: String by project
 val edcScmConnection: String by project
 
-buildscript {
-    dependencies {
-        val version: String by project
-        classpath("org.eclipse.edc.autodoc:org.eclipse.edc.autodoc.gradle.plugin:$version")
-    }
-}
+// buildscript {
+//     dependencies {
+//         val version: String by project
+//         classpath("org.eclipse.edc.autodoc:org.eclipse.edc.autodoc.gradle.plugin:$version")
+//     }
+// }
 
 val edcBuildId = libs.plugins.edc.build.get().pluginId
 
 allprojects {
     apply(plugin = edcBuildId)
-    apply(plugin = "org.eclipse.edc.autodoc")
+    // apply(plugin = "org.eclipse.edc.autodoc")
 
     configure<org.eclipse.edc.plugins.edcbuild.extensions.BuildExtension> {
         pom {
