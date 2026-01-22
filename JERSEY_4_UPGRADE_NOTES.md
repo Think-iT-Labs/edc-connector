@@ -26,7 +26,7 @@ The main breaking change in Jersey 4.0.0 is that `AbstractBinder` has moved pack
 - Added `dependencyResolutionManagement` block for better snapshot handling
 
 **File:** `build.gradle.kts`
-- Temporarily commented out autodoc plugin due to snapshot dependency issues
+- Autodoc plugin is enabled and working with the updated snapshot repository configuration
 
 ## Verification
 
@@ -68,10 +68,7 @@ To complete the upgrade:
    - `:extensions:common:http:jersey-core:test`
    - Integration tests that use REST APIs
 
-4. **Re-enable Autodoc Plugin**
-   Once snapshot dependencies are resolved, uncomment the autodoc plugin in `build.gradle.kts`
-
-5. **Manual Testing**
+4. **Manual Testing**
    - Start the connector and verify REST APIs work correctly
    - Test file upload (MultiPart) functionality
    - Verify exception handling and validation interceptors work
