@@ -68,10 +68,10 @@ public class EdcCompatibilityEmbeddedTest {
                 put("web.http.management.path", "/api/management");
                 put("web.http.protocol.port", String.valueOf(PROTOCOL_URL.getPort())); // this must match the configured connector url in resources/docker.tck.properties
                 put("web.http.protocol.path", "/api/dsp"); // this must match the configured connector url in resources/docker.tck.properties
+                put("web.http.protocol.public.uri", PROTOCOL_URL.toString()); // host.docker.internal is required by the container to communicate with the host
                 put("web.http.tck.port", String.valueOf(WEBHOOK_URL.getPort())); // this must match the configured connector url in resources/docker.tck.properties
                 put("web.http.tck.path", "/tck"); //
                 put("web.api.auth.key", "password");
-                put("edc.dsp.callback.address", PROTOCOL_URL.toString()); // host.docker.internal is required by the container to communicate with the host
                 put("edc.management.context.enabled", "true");
                 put("edc.component.id", "DSP-compatibility-test");
                 put("edc.transfer.proxy.token.signer.privatekey.alias", "private-key");

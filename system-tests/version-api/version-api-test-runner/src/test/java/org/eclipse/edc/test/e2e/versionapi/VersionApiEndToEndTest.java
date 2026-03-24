@@ -54,7 +54,6 @@ public class VersionApiEndToEndTest {
                     var dspPort = Ports.getFreePort();
                     put("web.http.protocol.path", "/protocol");
                     put("web.http.protocol.port", String.valueOf(dspPort));
-                    put("edc.dsp.callback.address", "http://localhost:" + dspPort + "/protocol");
                 }
             }))
             .registerServiceMock(DataPlaneManager.class, mock())

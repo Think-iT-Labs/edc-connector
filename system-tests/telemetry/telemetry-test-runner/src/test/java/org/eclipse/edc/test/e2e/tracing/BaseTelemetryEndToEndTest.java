@@ -40,7 +40,6 @@ public abstract class BaseTelemetryEndToEndTest {
             entry("web.http.control.port", String.valueOf(getFreePort())),
             entry("web.http.protocol.path", "/protocol"),
             entry("web.http.protocol.port", String.valueOf(PROTOCOL_PORT)),
-            entry("edc.dsp.callback.address", "http://localhost:" + PROTOCOL_PORT + "/protocol"),
             entry("web.http.management.path", "/management"),
             entry("web.http.management.port", String.valueOf(MANAGEMENT_PORT))
     ));

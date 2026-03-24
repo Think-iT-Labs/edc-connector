@@ -18,11 +18,7 @@ import org.eclipse.edc.jsonld.spi.JsonLd;
 import org.eclipse.edc.runtime.metamodel.annotation.Configuration;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
-import org.eclipse.edc.runtime.metamodel.annotation.Provides;
-import org.eclipse.edc.runtime.metamodel.annotation.Setting;
-import org.eclipse.edc.runtime.metamodel.annotation.Settings;
 import org.eclipse.edc.spi.EdcException;
-import org.eclipse.edc.spi.system.Hostname;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.spi.system.apiversion.ApiVersionService;
@@ -33,13 +29,10 @@ import org.eclipse.edc.web.spi.WebService;
 import org.eclipse.edc.web.spi.configuration.ApiContext;
 import org.eclipse.edc.web.spi.configuration.PortMapping;
 import org.eclipse.edc.web.spi.configuration.PortMappingRegistry;
-import org.eclipse.edc.web.spi.configuration.context.ControlApiUrl;
+import org.eclipse.edc.web.spi.configuration.context.ControlApiConfiguration;
 
 import java.io.IOException;
-import java.net.URI;
 
-import static java.lang.String.format;
-import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.jsonld.spi.JsonLdKeywords.VOCAB;
 import static org.eclipse.edc.jsonld.spi.Namespaces.DSPACE_2025_1_IRI;
 import static org.eclipse.edc.jsonld.spi.Namespaces.DSPACE_PREFIX;
@@ -54,17 +47,12 @@ import static org.eclipse.edc.spi.constants.CoreConstants.JSON_LD;
  * `default` or `control`
  */
 @Extension(value = ControlApiConfigurationExtension.NAME)
-@Provides(ControlApiUrl.class)
 public class ControlApiConfigurationExtension implements ServiceExtension {
 
     public static final String NAME = "Control API configuration";
     static final String CONTROL_SCOPE = "CONTROL_API";
-    static final int DEFAULT_CONTROL_PORT = 9191;
-    static final String DEFAULT_CONTROL_PATH = "/api/control";
     private static final String API_VERSION_JSON_FILE = "control-api-version.json";
 
-    @Setting(description = "Configures endpoint for reaching the Control API. If it's missing it defaults to the hostname configuration.", key = "edc.control.endpoint", required = false)
-    private String controlEndpoint;
     @Configuration
     private ControlApiConfiguration apiConfiguration;
 
@@ -72,8 +60,6 @@ public class ControlApiConfigurationExtension implements ServiceExtension {
     private PortMappingRegistry portMappingRegistry;
     @Inject
     private WebService webService;
-    @Inject
-    private Hostname hostname;
     @Inject
     private JsonLd jsonLd;
     @Inject
@@ -90,7 +76,6 @@ public class ControlApiConfigurationExtension implements ServiceExtension {
     public void initialize(ServiceExtensionContext context) {
         var portMapping = new PortMapping(ApiContext.CONTROL, apiConfiguration.port(), apiConfiguration.path());
         portMappingRegistry.register(portMapping);
-        context.registerService(ControlApiUrl.class, controlApiUrl(context, portMapping));
 
         jsonLd.registerNamespace(EDC_PREFIX, EDC_NAMESPACE, CONTROL_SCOPE);
         jsonLd.registerNamespace(VOCAB, EDC_NAMESPACE, CONTROL_SCOPE);
@@ -111,25 +96,4 @@ public class ControlApiConfigurationExtension implements ServiceExtension {
         }
     }
 
-    private ControlApiUrl controlApiUrl(ServiceExtensionContext context, PortMapping config) {
-        var callbackAddress = ofNullable(controlEndpoint).orElseGet(() -> format("http://%s:%s%s", hostname.get(), config.port(), config.path()));
-
-        try {
-            var url = URI.create(callbackAddress);
-            return () -> url;
-        } catch (IllegalArgumentException e) {
-            context.getMonitor().severe("Error creating control plane endpoint url", e);
-            throw new EdcException(e);
-        }
-    }
-
-    @Settings
-    record ControlApiConfiguration(
-            @Setting(key = "web.http." + ApiContext.CONTROL + ".port", description = "Port for " + ApiContext.CONTROL + " api context", defaultValue = DEFAULT_CONTROL_PORT + "")
-            int port,
-            @Setting(key = "web.http." + ApiContext.CONTROL + ".path", description = "Path for " + ApiContext.CONTROL + " api context", defaultValue = DEFAULT_CONTROL_PATH)
-            String path
-    ) {
-
-    }
 }

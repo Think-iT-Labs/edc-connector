@@ -31,6 +31,7 @@ import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Provider;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
+import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.command.CommandHandlerRegistry;
 import org.eclipse.edc.spi.event.EventRouter;
 import org.eclipse.edc.spi.message.RemoteMessageDispatcherRegistry;
@@ -58,8 +59,7 @@ public class RuntimeCoreServicesExtension implements ServiceExtension {
     @Setting(
             key = "edc.hostname",
             description = "Runtime hostname, which e.g. is used in referer urls",
-            defaultValue = DEFAULT_EDC_HOSTNAME,
-            warnOnMissingConfig = true
+            defaultValue = DEFAULT_EDC_HOSTNAME
     )
     public String hostname;
 
@@ -86,6 +86,14 @@ public class RuntimeCoreServicesExtension implements ServiceExtension {
 
     @Provider
     public Hostname hostname(ServiceExtensionContext context) {
+        var hostnameSetting = context.getSetting("edc.hostname", null);
+        if (hostnameSetting != null) {
+            throw new EdcException("""
+                    The setting 'edc.hostname' has been removed, please use the 'web.http.<context>.public.uri' setting
+                    instead. For example to correctly set the protocol webhook endpoint use the 'web.http.protocol.public.uri'
+                    setting, providing the full public URI.
+                    """);
+        }
         return () -> hostname;
     }
 

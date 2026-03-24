@@ -19,6 +19,7 @@ import org.eclipse.edc.connector.dataplane.selector.spi.instance.DataPlaneInstan
 import org.eclipse.edc.connector.dataplane.spi.edr.EndpointDataReferenceServiceRegistry;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGeneratorManager;
+import org.eclipse.edc.runtime.metamodel.annotation.Configuration;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
@@ -31,7 +32,7 @@ import org.eclipse.edc.spi.system.health.LivenessProvider;
 import org.eclipse.edc.spi.system.health.ReadinessProvider;
 import org.eclipse.edc.spi.system.health.StartupStatusProvider;
 import org.eclipse.edc.spi.types.domain.transfer.FlowType;
-import org.eclipse.edc.web.spi.configuration.context.ControlApiUrl;
+import org.eclipse.edc.web.spi.configuration.context.ControlApiConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
@@ -49,15 +50,16 @@ public class DataplaneSelfRegistrationExtension implements ServiceExtension {
 
     public static final boolean DEFAULT_SELF_UNREGISTRATION = false;
     public static final String NAME = "Dataplane Self Registration";
+
     @Setting(description = "Enable data-plane un-registration at shutdown (not suggested for clustered environments)", defaultValue = DEFAULT_SELF_UNREGISTRATION + "", key = "edc.data.plane.self.unregistration")
     private boolean selfUnregistration;
+    @Configuration
+    private ControlApiConfiguration apiConfiguration;
 
     private final AtomicBoolean isRegistered = new AtomicBoolean(false);
     private final AtomicReference<String> registrationError = new AtomicReference<>("Data plane self registration not complete");
     @Inject
     private DataPlaneSelectorService dataPlaneSelectorService;
-    @Inject
-    private ControlApiUrl controlApiUrl;
     @Inject
     private PipelineService pipelineService;
     @Inject
@@ -88,7 +90,7 @@ public class DataplaneSelfRegistrationExtension implements ServiceExtension {
 
         var instance = DataPlaneInstance.Builder.newInstance()
                 .id(context.getComponentId())
-                .url(controlApiUrl.get().toString() + "/v1/dataflows")
+                .url(apiConfiguration.publicUri() + "/v1/dataflows")
                 .allowedSourceTypes(pipelineService.supportedSourceTypes())
                 .allowedSourceTypes(resourceDefinitionGeneratorManager.sourceTypes())
                 .allowedTransferType(transferTypes.collect(toSet()))

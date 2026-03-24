@@ -117,8 +117,8 @@ public abstract class EdcCompatibilityDockerTest {
                 put("web.http.management.path", "/api/management");
                 put("web.http.protocol.port", "8282"); // this must match the configured connector url in resources/docker.tck.properties
                 put("web.http.protocol.path", "/api/dsp"); // this must match the configured connector url in resources/docker.tck.properties
+                put("web.http.protocol.public.uri", "http://host.docker.internal:8282/api/dsp"); // host.docker.internal is required by the container to communicate with the host
                 put("web.api.auth.key", "password");
-                put("edc.dsp.callback.address", "http://host.docker.internal:8282/api/dsp"); // host.docker.internal is required by the container to communicate with the host
                 put("edc.management.context.enabled", "true");
                 put("edc.hostname", "host.docker.internal");
                 put("edc.component.id", "DSP-compatibility-test");

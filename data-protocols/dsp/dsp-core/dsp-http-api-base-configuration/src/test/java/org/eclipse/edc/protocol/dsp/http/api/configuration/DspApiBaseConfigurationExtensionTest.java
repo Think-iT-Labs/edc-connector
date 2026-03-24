@@ -30,9 +30,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.edc.protocol.dsp.http.api.configuration.DspApiBaseConfigurationExtension.DEFAULT_PROTOCOL_PATH;
-import static org.eclipse.edc.protocol.dsp.http.api.configuration.DspApiBaseConfigurationExtension.DEFAULT_PROTOCOL_PORT;
+import static org.eclipse.edc.web.spi.configuration.context.ProtocolApiConfiguration.DEFAULT_PROTOCOL_PATH;
+import static org.eclipse.edc.web.spi.configuration.context.ProtocolApiConfiguration.DEFAULT_PROTOCOL_PORT;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
@@ -55,28 +54,23 @@ class DspApiBaseConfigurationExtensionTest {
     @Test
     void shouldComposeProtocolWebhook_whenNotConfigured(DspApiBaseConfigurationExtension extension, ServiceExtensionContext context) {
         when(context.getConfig()).thenReturn(ConfigFactory.empty());
-        var expectedWebhook = "http://hostname:%s%s".formatted(DEFAULT_PROTOCOL_PORT, DEFAULT_PROTOCOL_PATH);
-        
+
         extension.initialize(context);
         
         verify(portMappingRegistry).register(new PortMapping(ApiContext.PROTOCOL, DEFAULT_PROTOCOL_PORT, DEFAULT_PROTOCOL_PATH));
-        assertThat(extension.dspBaseWebhookAddress().get()).isEqualTo(expectedWebhook);
     }
     
     @Test
     void shouldUseConfiguredProtocolWebhook(ServiceExtensionContext context, ObjectFactory factory) {
-        var webhookAddress = "http://webhook";
         when(context.getConfig()).thenReturn(ConfigFactory.fromMap(Map.of(
                 "web.http.protocol.port", String.valueOf(1234),
-                "web.http.protocol.path", "/path",
-                "edc.dsp.callback.address", webhookAddress))
+                "web.http.protocol.path", "/path"))
         );
         var extension = factory.constructInstance(DspApiBaseConfigurationExtension.class);
         
         extension.initialize(context);
         
         verify(portMappingRegistry).register(new PortMapping(ApiContext.PROTOCOL, 1234, "/path"));
-        assertThat(extension.dspBaseWebhookAddress().get()).isEqualTo(webhookAddress);
     }
     
     @Test

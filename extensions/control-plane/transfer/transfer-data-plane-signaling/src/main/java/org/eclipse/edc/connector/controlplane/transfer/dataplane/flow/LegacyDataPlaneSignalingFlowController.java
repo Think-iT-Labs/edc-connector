@@ -33,10 +33,10 @@ import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowProvisionMessage;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowResponseMessage;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
-import org.eclipse.edc.web.spi.configuration.context.ControlApiUrl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.net.URI;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
@@ -59,7 +59,7 @@ import static org.eclipse.edc.spi.response.ResponseStatus.FATAL_ERROR;
  */
 public class LegacyDataPlaneSignalingFlowController implements DataFlowController {
 
-    private final ControlApiUrl callbackUrl;
+    private final URI callbackUri;
     private final DataPlaneSelectorService selectorClient;
     private final DataPlaneClientFactory clientFactory;
     private final DataFlowPropertiesProvider propertiesProvider;
@@ -69,11 +69,11 @@ public class LegacyDataPlaneSignalingFlowController implements DataFlowControlle
     private final DataAddressStore dataAddressStore;
     private final Monitor monitor;
 
-    public LegacyDataPlaneSignalingFlowController(ControlApiUrl callbackUrl, DataPlaneSelectorService selectorClient,
+    public LegacyDataPlaneSignalingFlowController(URI callbackUri, DataPlaneSelectorService selectorClient,
                                                   DataFlowPropertiesProvider propertiesProvider, DataPlaneClientFactory clientFactory,
                                                   String selectionStrategy, TransferTypeParser transferTypeParser, AssetIndex assetIndex,
                                                   DataAddressStore dataAddressStore, Monitor monitor) {
-        this.callbackUrl = callbackUrl;
+        this.callbackUri = callbackUri;
         this.selectorClient = selectorClient;
         this.propertiesProvider = propertiesProvider;
         this.clientFactory = clientFactory;
@@ -118,7 +118,7 @@ public class LegacyDataPlaneSignalingFlowController implements DataFlowControlle
                 .agreementId(transferProcess.getContractId())
                 .assetId(transferProcess.getAssetId())
                 .transferType(transferTypeParse.getContent())
-                .callbackAddress(callbackUrl != null ? callbackUrl.get() : null)
+                .callbackAddress(callbackUri)
                 .properties(propertiesResult.getContent())
                 .build();
 
@@ -150,7 +150,7 @@ public class LegacyDataPlaneSignalingFlowController implements DataFlowControlle
                 .agreementId(transferProcess.getContractId())
                 .assetId(transferProcess.getAssetId())
                 .transferType(transferTypeParse.getContent())
-                .callbackAddress(callbackUrl != null ? callbackUrl.get() : null)
+                .callbackAddress(callbackUri)
                 .properties(propertiesResult.getContent())
                 .build();
 

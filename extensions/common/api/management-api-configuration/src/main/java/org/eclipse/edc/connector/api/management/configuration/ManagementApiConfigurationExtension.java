@@ -27,7 +27,6 @@ import org.eclipse.edc.participant.spi.ParticipantIdMapper;
 import org.eclipse.edc.runtime.metamodel.annotation.Configuration;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
-import org.eclipse.edc.runtime.metamodel.annotation.Provides;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
 import org.eclipse.edc.runtime.metamodel.annotation.Settings;
 import org.eclipse.edc.spi.EdcException;
@@ -49,14 +48,10 @@ import org.eclipse.edc.web.spi.WebService;
 import org.eclipse.edc.web.spi.configuration.ApiContext;
 import org.eclipse.edc.web.spi.configuration.PortMapping;
 import org.eclipse.edc.web.spi.configuration.PortMappingRegistry;
-import org.eclipse.edc.web.spi.configuration.context.ManagementApiUrl;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.Map;
 
-import static java.lang.String.format;
-import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.api.management.ManagementApi.MANAGEMENT_API_CONTEXT;
 import static org.eclipse.edc.api.management.ManagementApi.MANAGEMENT_API_V_4;
 import static org.eclipse.edc.api.management.ManagementApi.MANAGEMENT_SCOPE;
@@ -73,7 +68,6 @@ import static org.eclipse.edc.spi.constants.CoreConstants.JSON_LD;
 /**
  * Configure 'management' api context.
  */
-@Provides(ManagementApiUrl.class)
 @Extension(ManagementApiConfigurationExtension.NAME)
 public class ManagementApiConfigurationExtension implements ServiceExtension {
 
@@ -83,6 +77,7 @@ public class ManagementApiConfigurationExtension implements ServiceExtension {
     private static final String API_VERSION_JSON_FILE = "management-api-version.json";
     private static final boolean DEFAULT_MANAGEMENT_API_ENABLE_CONTEXT = false;
 
+    @Deprecated(since = "0.17.0")
     @Setting(description = "Configures endpoint for reaching the Management API, in the format \"<hostname:management.port/management.path>\"", key = "edc.management.endpoint", required = false)
     private String managementApiEndpoint;
     @Setting(description = "If set enable the usage of management api JSON-LD context.", defaultValue = "" + DEFAULT_MANAGEMENT_API_ENABLE_CONTEXT, key = "edc.management.context.enabled")
@@ -118,9 +113,6 @@ public class ManagementApiConfigurationExtension implements ServiceExtension {
     public void initialize(ServiceExtensionContext context) {
         var portMapping = new PortMapping(ApiContext.MANAGEMENT, apiConfiguration.port(), apiConfiguration.path());
         portMappingRegistry.register(portMapping);
-
-        context.registerService(ManagementApiUrl.class, managementApiUrl(context, portMapping));
-
 
         if (managementApiContextEnabled) {
             jsonLd.registerContext(EDC_CONNECTOR_MANAGEMENT_CONTEXT, MANAGEMENT_SCOPE);
@@ -164,17 +156,6 @@ public class ManagementApiConfigurationExtension implements ServiceExtension {
         try (var versionContent = resourceClassLoader.getResourceAsStream(API_VERSION_JSON_FILE)) {
             apiVersionService.registerVersionInfo(ApiContext.MANAGEMENT, versionContent);
         } catch (IOException e) {
-            throw new EdcException(e);
-        }
-    }
-
-    private ManagementApiUrl managementApiUrl(ServiceExtensionContext context, PortMapping config) {
-        var callbackAddress = ofNullable(managementApiEndpoint).orElseGet(() -> format("http://%s:%s%s", hostname.get(), config.port(), config.path()));
-        try {
-            var url = URI.create(callbackAddress);
-            return () -> url;
-        } catch (IllegalArgumentException e) {
-            context.getMonitor().severe("Error creating management plane endpoint url", e);
             throw new EdcException(e);
         }
     }

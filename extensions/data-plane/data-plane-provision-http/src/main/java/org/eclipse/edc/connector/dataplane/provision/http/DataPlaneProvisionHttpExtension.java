@@ -28,7 +28,6 @@ import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
 import org.eclipse.edc.runtime.metamodel.annotation.Settings;
-import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.system.Hostname;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
@@ -59,8 +58,6 @@ public class DataPlaneProvisionHttpExtension implements ServiceExtension {
     @Inject
     private EdcHttpClient httpClient;
     @Inject
-    private Monitor monitor;
-    @Inject
     private TypeManager typeManager;
     @Inject
     private WebService webService;
@@ -80,7 +77,7 @@ public class DataPlaneProvisionHttpExtension implements ServiceExtension {
     public void initialize(ServiceExtensionContext context) {
         var portMapping = new PortMapping("provision", apiConfiguration.port(), apiConfiguration.path());
         portMappingRegistry.register(portMapping);
-        var callbackAddress = ofNullable(provisionApiEndpoint).orElseGet(() -> format("http://%s:%s%s", hostname.get(), portMapping.port(), portMapping.path()));
+        var callbackAddress = ofNullable(provisionApiEndpoint).orElseGet(() -> format("http://localhost:%s%s", portMapping.port(), portMapping.path()));
 
         var provisionHttpClient = new ProvisionHttpClient(callbackAddress, httpClient, typeManager.getMapper());
 

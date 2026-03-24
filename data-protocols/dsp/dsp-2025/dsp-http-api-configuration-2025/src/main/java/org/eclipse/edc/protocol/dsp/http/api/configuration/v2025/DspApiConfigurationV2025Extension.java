@@ -22,10 +22,10 @@ import org.eclipse.edc.connector.controlplane.transform.odrl.OdrlTransformersFac
 import org.eclipse.edc.connector.controlplane.transform.odrl.from.JsonObjectFromPolicyTransformer;
 import org.eclipse.edc.jsonld.spi.JsonLd;
 import org.eclipse.edc.participant.spi.ParticipantIdMapper;
-import org.eclipse.edc.protocol.dsp.http.spi.api.DspBaseWebhookAddress;
 import org.eclipse.edc.protocol.spi.DataspaceProfileContext;
 import org.eclipse.edc.protocol.spi.DataspaceProfileContextRegistry;
 import org.eclipse.edc.protocol.spi.DefaultParticipantIdExtractionFunction;
+import org.eclipse.edc.runtime.metamodel.annotation.Configuration;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.spi.system.ServiceExtension;
@@ -39,6 +39,7 @@ import org.eclipse.edc.transform.transformer.edc.from.JsonObjectFromQuerySpecTra
 import org.eclipse.edc.transform.transformer.edc.to.JsonObjectToCriterionTransformer;
 import org.eclipse.edc.transform.transformer.edc.to.JsonObjectToQuerySpecTransformer;
 import org.eclipse.edc.transform.transformer.edc.to.JsonValueToGenericTypeTransformer;
+import org.eclipse.edc.web.spi.configuration.context.ProtocolApiConfiguration;
 
 import java.util.Map;
 
@@ -60,6 +61,9 @@ public class DspApiConfigurationV2025Extension implements ServiceExtension {
 
     public static final String NAME = "Dataspace Protocol 2025/1 API Configuration Extension";
 
+    @Configuration
+    private ProtocolApiConfiguration apiConfiguration;
+
     @Inject
     private TypeManager typeManager;
     @Inject
@@ -68,8 +72,6 @@ public class DspApiConfigurationV2025Extension implements ServiceExtension {
     private TypeTransformerRegistry transformerRegistry;
     @Inject
     private ParticipantIdMapper participantIdMapper;
-    @Inject
-    private DspBaseWebhookAddress dspWebhookAddress;
     @Inject
     private DataspaceProfileContextRegistry dataspaceProfileContextRegistry;
     @Inject
@@ -86,7 +88,7 @@ public class DspApiConfigurationV2025Extension implements ServiceExtension {
         registerNamespaces();
         registerTransformers();
 
-        var profileContext = new DataspaceProfileContext(DATASPACE_PROTOCOL_HTTP_V_2025_1, V_2025_1, () -> dspWebhookAddress.get() + V_2025_1_PATH, participantIdExtractionFunction);
+        var profileContext = new DataspaceProfileContext(DATASPACE_PROTOCOL_HTTP_V_2025_1, V_2025_1, () -> apiConfiguration.publicUri() + V_2025_1_PATH, participantIdExtractionFunction);
         dataspaceProfileContextRegistry.registerDefault(profileContext);
     }
 

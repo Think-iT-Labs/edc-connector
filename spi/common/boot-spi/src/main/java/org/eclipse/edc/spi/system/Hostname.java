@@ -15,6 +15,7 @@
 package org.eclipse.edc.spi.system;
 
 @FunctionalInterface
+@Deprecated(since = "0.17.0")
 public interface Hostname {
 
     /**

@@ -23,6 +23,7 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.types.DataAddressStor
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.DataPlaneProtocolInUse;
 import org.eclipse.edc.connector.dataplane.selector.spi.DataPlaneSelectorService;
 import org.eclipse.edc.connector.dataplane.selector.spi.client.DataPlaneClientFactory;
+import org.eclipse.edc.runtime.metamodel.annotation.Configuration;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Provider;
@@ -31,8 +32,9 @@ import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.response.StatusResult;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
-import org.eclipse.edc.web.spi.configuration.context.ControlApiUrl;
+import org.eclipse.edc.web.spi.configuration.context.ControlApiConfiguration;
 
+import java.net.URI;
 import java.util.Map;
 
 import static org.eclipse.edc.connector.controlplane.transfer.dataplane.TransferDataPlaneSignalingExtension.NAME;
@@ -47,9 +49,9 @@ public class TransferDataPlaneSignalingExtension implements ServiceExtension {
 
     @Setting(description = "Defines strategy for Data Plane instance selection in case Data Plane is not embedded in current runtime", defaultValue = DEFAULT_DATAPLANE_SELECTOR_STRATEGY, key = "edc.dataplane.client.selector.strategy")
     private String selectionStrategy;
+    @Configuration
+    private ControlApiConfiguration apiConfiguration;
 
-    @Inject(required = false)
-    private ControlApiUrl callbackUrl;
     @Inject
     private DataPlaneSelectorService selectorService;
     @Inject
@@ -78,7 +80,7 @@ public class TransferDataPlaneSignalingExtension implements ServiceExtension {
 
     @Provider
     public DataFlowController dataFlowController() {
-        return new LegacyDataPlaneSignalingFlowController(callbackUrl, selectorService, getPropertiesProvider(),
+        return new LegacyDataPlaneSignalingFlowController(URI.create(apiConfiguration.publicUri()), selectorService, getPropertiesProvider(),
                 clientFactory, selectionStrategy, transferTypeParser, assetIndex, dataAddressStore, monitor);
     }
 

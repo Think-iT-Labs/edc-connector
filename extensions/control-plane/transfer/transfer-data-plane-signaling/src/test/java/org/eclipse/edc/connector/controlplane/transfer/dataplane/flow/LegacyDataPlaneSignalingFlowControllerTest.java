@@ -71,7 +71,7 @@ public class LegacyDataPlaneSignalingFlowControllerTest {
     private final Monitor monitor = mock();
 
     private final LegacyDataPlaneSignalingFlowController flowController = new LegacyDataPlaneSignalingFlowController(
-            () -> URI.create("http://localhost"), selectorService, propertiesProvider, dataPlaneClientFactory,
+            URI.create("http://localhost"), selectorService, propertiesProvider, dataPlaneClientFactory,
             "random", transferTypeParser, mock(), dataAddressStore, monitor);
 
     @Nested
