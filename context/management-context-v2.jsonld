@@ -35,7 +35,10 @@
           "@id": "edc:labels",
           "@container": "@set"
         },
-        "properties": "edc:properties"
+        "properties": {
+          "@id": "edc:properties",
+          "@type": "@json"
+        }
       }
     },
     "CatalogAsset": {
@@ -116,7 +119,8 @@
       "@context": {
         "counterPartyAddress": "edc:counterPartyAddress",
         "counterPartyId": "edc:counterPartyId",
-        "protocol": "edc:protocol"
+        "protocol": "edc:protocol",
+        "profile": "edc:profile"
       }
     },
     "CatalogRequest": {
@@ -125,6 +129,7 @@
         "counterPartyAddress": "edc:counterPartyAddress",
         "counterPartyId": "edc:counterPartyId",
         "protocol": "edc:protocol",
+        "profile": "edc:profile",
         "additionalScopes": {
           "@id": "edc:additionalScopes",
           "@container": "@set"
@@ -145,7 +150,8 @@
           "@id": "edc:callbackAddresses",
           "@container": "@set"
         },
-        "protocol": "edc:protocol"
+        "protocol": "edc:protocol",
+        "profile": "edc:profile"
       }
     },
     "QuerySpec": {
@@ -167,6 +173,7 @@
         "type": "edc:type",
         "counterPartyAddress": "edc:counterPartyAddress",
         "protocol": "edc:protocol",
+        "profile": "edc:profile",
         "callbackAddresses": {
           "@id": "edc:callbackAddresses",
           "@container": "@set"
@@ -215,7 +222,8 @@
         "consumerId": "edc:consumerId",
         "assetId": "edc:assetId",
         "agreementId": "edc:agreementId",
-        "contractSigningDate": "edc:contractSigningDate"
+        "contractSigningDate": "edc:contractSigningDate",
+        "claims": "edc:claims"
       }
     },
     "TransferRequest": {
@@ -236,6 +244,7 @@
         "dataDestination": "edc:dataDestination",
         "contractId": "edc:contractId",
         "protocol": "edc:protocol",
+        "profile": "edc:profile",
         "dataplaneMetadata": {
           "@id": "edc:dataplaneMetadata"
         }
@@ -503,6 +512,26 @@
         },
         "expression": "edc:expression",
         "description": "edc:description"
+      }
+    },
+    "CelExpressionTestRequest": {
+      "@id": "edc:CelExpressionTestRequest",
+      "@context": {
+        "expression": "edc:expression",
+        "leftOperand": "edc:leftOperand",
+        "operator": "edc:operator",
+        "rightOperand": "edc:rightOperand",
+        "params": {
+          "@id": "edc:params",
+          "@type": "@json"
+        }
+      }
+    },
+    "CelExpressionTestResponse": {
+      "@id": "edc:CelExpressionTestResponse",
+      "@context": {
+        "evaluationResult": "edc:evaluationResult",
+        "error": "edc:error"
       }
     },
     "inForceDate": "edc:inForceDate",
