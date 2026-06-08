@@ -2,13 +2,18 @@
   "@context": {
     "@version": 1.1,
     "edc": "https://w3id.org/edc/v0.0.1/ns/",
+    "dct": "http://purl.org/dc/terms/",
     "Asset": {
       "@id": "edc:Asset",
       "@context": {
         "properties": {
           "@id": "edc:properties",
           "@context": {
-            "@vocab": "https://w3id.org/edc/v0.0.1/ns/"
+            "@vocab": "https://w3id.org/edc/v0.0.1/ns/",
+            "conformsTo": {
+              "@id": "dct:conformsTo",
+              "@type": "@id"
+            }
           }
         },
         "privateProperties": {
@@ -38,6 +43,10 @@
         "properties": {
           "@id": "edc:properties",
           "@type": "@json"
+        },
+        "profiles": {
+          "@id": "edc:profiles",
+          "@container": "@set"
         }
       }
     },
@@ -532,6 +541,66 @@
       "@context": {
         "evaluationResult": "edc:evaluationResult",
         "error": "edc:error"
+      }
+    },
+    "DataspaceProfile": {
+      "@id": "edc:DataspaceProfile",
+      "@context": {
+        "name": "edc:name",
+        "protocol": {
+          "@id": "edc:protocol",
+          "@context": {
+            "path": "edc:path",
+            "binding": "edc:binding",
+            "version": "edc:version",
+            "namespace": "edc:namespace"
+          }
+        },
+        "jsonLdContextsUrl": {
+          "@id": "edc:jsonLdContextsUrl",
+          "@container": "@set"
+        }
+      }
+    },
+    "AssociateDataspaceProfile": {
+      "@id": "edc:AssociateDataspaceProfile",
+      "@context": {
+        "profiles": {
+          "@id": "edc:profiles",
+          "@container": "@set"
+        }
+      }
+    },
+    "DiscoveryRequest": {
+      "@id": "edc:DiscoveryRequest",
+      "@context": {
+        "counterPartyId": {
+          "@id": "edc:counterPartyId"
+        },
+        "counterPartyAddress": {
+          "@id": "edc:counterPartyAddress"
+        }
+      }
+    },
+    "DiscoveryResponse": {
+      "@id": "edc:DiscoveryResponse",
+      "@context": {
+        "profile": {
+          "@id": "edc:profile"
+        },
+        "version": {
+          "@id": "edc:version"
+        },
+        "counterParty": {
+          "@id": "edc:counterParty",
+          "@context": {
+            "path": "edc:path",
+            "dataServiceEndpoint": "edc:dataServiceEndpoint"
+          }
+        },
+        "binding": {
+          "@id": "edc:binding"
+        }
       }
     },
     "inForceDate": "edc:inForceDate",
